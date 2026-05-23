@@ -509,15 +509,21 @@ def build_miniapp_config() -> dict:
 
 
 async def miniapp_page_handler(_: web.Request) -> web.FileResponse:
-    return web.FileResponse(MINIAPP_DIR / "index.html")
+    response = web.FileResponse(MINIAPP_DIR / "index.html")
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return response
 
 
 async def miniapp_styles_handler(_: web.Request) -> web.FileResponse:
-    return web.FileResponse(MINIAPP_DIR / "styles.css")
+    response = web.FileResponse(MINIAPP_DIR / "styles.css")
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return response
 
 
 async def miniapp_script_handler(_: web.Request) -> web.FileResponse:
-    return web.FileResponse(MINIAPP_DIR / "app.js")
+    response = web.FileResponse(MINIAPP_DIR / "app.js")
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return response
 
 
 async def healthz_handler(_: web.Request) -> web.Response:

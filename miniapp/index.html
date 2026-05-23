@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SPACEJAM Pay</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="/miniapp/styles.css" />
+    <link rel="stylesheet" href="/miniapp/styles.css?v=4" />
   </head>
   <body>
     <main class="shell">
@@ -16,146 +16,56 @@
       </section>
 
       <section class="hero">
-        <div class="hero-grid">
-          <div class="hero-copy">
-            <p class="eyebrow">SPACEJAM PAY</p>
-            <h1>Выбери, как тебе удобнее зайти в курс</h1>
-            <p class="lead">
-              Всё собрано в одном месте. Можно оплатить прямо внутри Telegram
-              через Stars, а карту и крипту мы держим как отдельные спокойные
-              сценарии на будущее.
-            </p>
-            <div class="hero-meta">
-              <span class="pill" id="productTitle">Курс SPACEJAM</span>
-              <span class="pill accent" id="productPrice">750 Stars</span>
-            </div>
-          </div>
-
-          <aside class="hero-panel">
-            <div class="hero-panel-head">
-              <span class="panel-label">PAYMENT BOARD</span>
-              <span class="panel-dot"></span>
-            </div>
-            <div class="hero-amount" id="heroAmount">750</div>
-            <div class="hero-amount-note" id="heroAmountNote">Stars за полный доступ</div>
-            <div class="hero-rows">
-              <div class="hero-row">
-                <span>Основной сценарий</span>
-                <strong>Telegram Stars</strong>
-              </div>
-              <div class="hero-row">
-                <span>Статус Mini App</span>
-                <strong>Готов к оплате</strong>
-              </div>
-              <div class="hero-row">
-                <span>Формат доступа</span>
-                <strong>Мгновенно после оплаты</strong>
-              </div>
-            </div>
-          </aside>
+        <p class="eyebrow">SPACEJAM PAY</p>
+        <h1>Оплата курса</h1>
+        <p class="lead">Выбери удобный способ и продолжай кататься.</p>
+        <div class="hero-meta">
+          <span class="pill" id="productTitle">Курс SPACEJAM</span>
+          <span class="pill accent" id="productPrice">750 Stars</span>
         </div>
       </section>
 
-      <section class="signal-strip" aria-label="Сценарии оплаты">
-        <article class="signal-card signal-live">
-          <span class="signal-title">Внутри Telegram</span>
-          <strong>Stars</strong>
-          <p>Самый простой путь: оплатил и сразу пошёл дальше по курсу.</p>
-        </article>
-        <article class="signal-card">
-          <span class="signal-title">Внешний checkout</span>
-          <strong>Карта</strong>
-          <p>Подключим отдельную страницу оплаты, когда выберем платёжку.</p>
-        </article>
-        <article class="signal-card">
-          <span class="signal-title">Альтернатива</span>
-          <strong>Крипта</strong>
-          <p>Оставили как запасной вариант для тех, кому так удобнее.</p>
-        </article>
-      </section>
-
       <section class="methods" id="methods">
-        <article class="method method-card">
-          <div class="method-head">
-            <div>
-              <span class="method-kicker">CARD</span>
-              <h2>Картой</h2>
-            </div>
-            <span class="method-icon" aria-hidden="true">▣</span>
-          </div>
-          <p class="method-copy">
-            Когда подключим платёжку, здесь будет обычная понятная оплата картой
-            через отдельную защищённую страницу.
-          </p>
-          <ul class="method-points">
-            <li>Привычный сценарий без лишних шагов</li>
-            <li>Подойдёт для bePaid или другой платёжной системы</li>
-          </ul>
-          <div class="method-note" id="cardStatus">Ссылка пока не настроена</div>
-          <button class="action-button muted" data-method="card" id="cardButton" disabled>
-            Скоро
-          </button>
-        </article>
-
         <article class="method method-stars">
-          <div class="method-head">
-            <div>
-              <span class="method-kicker">XTR</span>
-              <h2>Через Stars</h2>
-            </div>
-            <span class="method-icon" aria-hidden="true">✦</span>
-          </div>
-          <p class="method-copy">
-            Это основной и самый быстрый вариант. Всё происходит прямо внутри
-            Telegram, без переходов и лишней суеты.
-          </p>
-          <ul class="method-points">
-            <li>Оплата в пару нажатий</li>
-            <li>После покупки можно сразу переходить к материалам</li>
-          </ul>
+          <span class="method-kicker">XTR</span>
+          <h2>Stars</h2>
+          <p class="method-copy">Быстро прямо внутри Telegram.</p>
           <div class="method-note success" id="starsStatus">Готово к оплате</div>
           <button class="action-button primary" data-method="stars" id="starsButton">
             Оплатить в Telegram
           </button>
         </article>
 
+        <article class="method method-card">
+          <span class="method-kicker">CARD</span>
+          <h2>Карта</h2>
+          <p class="method-copy">Подключим, когда выберем платёжку.</p>
+          <div class="method-note" id="cardStatus">Пока не подключено</div>
+          <button class="action-button muted" data-method="card" id="cardButton" disabled>
+            Скоро
+          </button>
+        </article>
+
         <article class="method method-crypto">
-          <div class="method-head">
-            <div>
-              <span class="method-kicker">CRYPTO</span>
-              <h2>Криптой</h2>
-            </div>
-            <span class="method-icon" aria-hidden="true">◈</span>
-          </div>
-          <p class="method-copy">
-            Этот вариант оставили на будущее. Подойдёт для отдельной оплаты через
-            внешний счёт или Crypto Bot.
-          </p>
-          <ul class="method-points">
-            <li>Отдельный спокойный сценарий для тех, кому так удобнее</li>
-            <li>Можно включить позже без переделки Mini App</li>
-          </ul>
-          <div class="method-note" id="cryptoStatus">Крипто-счёт ещё не подключён</div>
+          <span class="method-kicker">CRYPTO</span>
+          <h2>Крипта</h2>
+          <p class="method-copy">Оставили как запасной вариант.</p>
+          <div class="method-note" id="cryptoStatus">Пока не подключено</div>
           <button class="action-button muted" data-method="crypto" id="cryptoButton" disabled>
             Скоро
           </button>
         </article>
       </section>
 
-      <section class="policy">
-        <div class="policy-head">
-          <span class="policy-badge">WHY THIS FLOW</span>
-          <h3>Как это работает сейчас</h3>
-        </div>
+      <section class="footer-note">
         <p id="policyText">
           Для цифровых товаров внутри Telegram основной вариант оплаты — Stars.
-          Карта и крипта обычно используются как внешние сценарии.
         </p>
       </section>
 
       <div class="toast" id="toast" hidden></div>
     </main>
 
-    <script src="/miniapp/app.js" defer></script>
+    <script src="/miniapp/app.js?v=4" defer></script>
   </body>
 </html>
