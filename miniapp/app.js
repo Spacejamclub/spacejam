@@ -61,6 +61,11 @@ function openExternalUrl(url) {
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
+function parseDisplayPrice(displayPrice) {
+  const match = String(displayPrice || "").match(/^(\d+)/);
+  return match ? match[1] : displayPrice;
+}
+
 function closeMiniAppIfPossible() {
   tg?.close?.();
 }
@@ -152,6 +157,10 @@ function renderConfig(config) {
 
   $("productTitle").textContent = config.title;
   $("productPrice").textContent = config.display_price;
+  $("heroAmount").textContent = parseDisplayPrice(config.display_price);
+  $("heroAmountNote").textContent = config.display_price.includes("Stars")
+    ? "Stars за полный доступ"
+    : `${config.display_price} за полный доступ`;
   $("policyText").textContent = config.policy_note;
 
   if (config.dev_banner) {
@@ -159,6 +168,7 @@ function renderConfig(config) {
   }
 
   $("starsStatus").textContent = config.stars_note;
+  $("starsButton").closest(".method").dataset.enabled = config.stars_enabled ? "true" : "false";
   setButtonState("starsButton", {
     enabled: config.stars_enabled,
     label: config.stars_enabled ? "Оплатить в Telegram" : "Stars недоступны",
@@ -166,12 +176,14 @@ function renderConfig(config) {
   });
 
   $("cardStatus").textContent = config.card_note;
+  $("cardButton").closest(".method").dataset.enabled = config.card_enabled ? "true" : "false";
   setButtonState("cardButton", {
     enabled: config.card_enabled,
     label: config.card_enabled ? "Оплатить картой" : "Скоро",
   });
 
   $("cryptoStatus").textContent = config.crypto_note;
+  $("cryptoButton").closest(".method").dataset.enabled = config.crypto_enabled ? "true" : "false";
   setButtonState("cryptoButton", {
     enabled: config.crypto_enabled,
     label: config.crypto_enabled ? "Оплатить криптой" : "Скоро",
