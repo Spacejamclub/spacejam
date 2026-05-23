@@ -1,0 +1,7 @@
+tunnel: e3482fb7-efa4-4599-bbe3-ecda6c266c05
+credentials-file: /Users/space_plug/Desktop/SPACE_JAM/.cloudflared/e3482fb7-efa4-4599-bbe3-ecda6c266c05.json
+
+ingress:
+  - hostname: pay.spacejam.by
+    service: http://127.0.0.1:8080
+  - service: http_status:404

@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: spacejam-miniapp
+    runtime: python
+    plan: free
+    region: frankfurt
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.11"
+      - key: RUN_BOT
+        value: "0"
+      - key: RUN_WEB
+        value: "1"
+      - key: MINI_APP_DEV_MODE
+        value: "0"
