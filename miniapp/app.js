@@ -162,20 +162,17 @@ function renderConfig(config) {
     showDevBanner(config.dev_banner);
   }
 
-  $("starsStatus").textContent = config.stars_note;
   setButtonState("starsButton", {
     enabled: config.stars_enabled,
     label: config.stars_enabled ? "Оплатить в Telegram" : "Stars недоступны",
     primary: true,
   });
 
-  $("cardStatus").textContent = config.card_note;
   setButtonState("cardButton", {
     enabled: config.card_enabled,
     label: config.card_enabled ? "Оплатить картой" : "Скоро",
   });
 
-  $("cryptoStatus").textContent = config.crypto_note;
   setButtonState("cryptoButton", {
     enabled: config.crypto_enabled,
     label: config.crypto_enabled ? "Оплатить криптой" : "Скоро",

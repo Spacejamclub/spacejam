@@ -149,25 +149,25 @@ h1 {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.16;
-  color: rgba(255, 255, 255, 0.14);
+  opacity: 0.19;
+  color: rgba(255, 255, 255, 0.17);
   font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
   transform: translate(16%, 22%);
   text-shadow:
-    0 0 0 rgba(255, 255, 255, 0.16),
-    94px 20px 0 rgba(255, 255, 255, 0.13),
-    194px 36px 0 rgba(255, 255, 255, 0.11),
-    34px 124px 0 rgba(255, 255, 255, 0.11),
-    144px 116px 0 rgba(255, 255, 255, 0.145),
-    256px 14px 0 rgba(255, 255, 255, 0.105),
-    272px 138px 0 rgba(255, 255, 255, 0.115),
-    68px 64px 0 rgba(255, 255, 255, 0.095),
-    220px 86px 0 rgba(255, 255, 255, 0.125),
-    118px 48px 0 rgba(255, 255, 255, 0.12),
-    182px 150px 0 rgba(255, 255, 255, 0.1);
+    0 0 0 rgba(255, 255, 255, 0.2),
+    94px 20px 0 rgba(255, 255, 255, 0.16),
+    194px 36px 0 rgba(255, 255, 255, 0.14),
+    34px 124px 0 rgba(255, 255, 255, 0.14),
+    144px 116px 0 rgba(255, 255, 255, 0.18),
+    256px 14px 0 rgba(255, 255, 255, 0.13),
+    272px 138px 0 rgba(255, 255, 255, 0.145),
+    68px 64px 0 rgba(255, 255, 255, 0.12),
+    220px 86px 0 rgba(255, 255, 255, 0.155),
+    118px 48px 0 rgba(255, 255, 255, 0.15),
+    182px 150px 0 rgba(255, 255, 255, 0.125);
 }
 
 .method-stars::after {
@@ -176,22 +176,22 @@ h1 {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.14;
-  color: rgba(255, 255, 255, 0.12);
+  opacity: 0.17;
+  color: rgba(255, 255, 255, 0.15);
   font-family: var(--font-display);
   font-size: 8px;
   font-weight: 700;
   line-height: 1;
   transform: translate(24%, 30%);
   text-shadow:
-    78px 14px 0 rgba(255, 255, 255, 0.11),
-    156px 52px 0 rgba(255, 255, 255, 0.095),
-    236px 28px 0 rgba(255, 255, 255, 0.09),
-    28px 96px 0 rgba(255, 255, 255, 0.085),
-    118px 136px 0 rgba(255, 255, 255, 0.1),
-    246px 118px 0 rgba(255, 255, 255, 0.09),
-    54px 42px 0 rgba(255, 255, 255, 0.085),
-    204px 104px 0 rgba(255, 255, 255, 0.095);
+    78px 14px 0 rgba(255, 255, 255, 0.14),
+    156px 52px 0 rgba(255, 255, 255, 0.12),
+    236px 28px 0 rgba(255, 255, 255, 0.115),
+    28px 96px 0 rgba(255, 255, 255, 0.105),
+    118px 136px 0 rgba(255, 255, 255, 0.125),
+    246px 118px 0 rgba(255, 255, 255, 0.115),
+    54px 42px 0 rgba(255, 255, 255, 0.105),
+    204px 104px 0 rgba(255, 255, 255, 0.12);
 }
 
 .method-crypto::before {
