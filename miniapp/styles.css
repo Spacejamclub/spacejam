@@ -149,20 +149,20 @@ h1 {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.09;
-  color: rgba(255, 255, 255, 0.08);
+  opacity: 0.13;
+  color: rgba(255, 255, 255, 0.12);
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
   line-height: 1;
   transform: translate(16%, 22%);
   text-shadow:
-    92px 20px rgba(255, 255, 255, 0.07),
-    198px 40px rgba(255, 255, 255, 0.06),
-    34px 126px rgba(255, 255, 255, 0.06),
-    146px 118px rgba(255, 255, 255, 0.075),
-    258px 14px rgba(255, 255, 255, 0.055),
-    272px 138px rgba(255, 255, 255, 0.06);
+    92px 20px rgba(255, 255, 255, 0.11),
+    198px 40px rgba(255, 255, 255, 0.095),
+    34px 126px rgba(255, 255, 255, 0.095),
+    146px 118px rgba(255, 255, 255, 0.115),
+    258px 14px rgba(255, 255, 255, 0.09),
+    272px 138px rgba(255, 255, 255, 0.095);
 }
 
 .method-crypto::before {
@@ -171,19 +171,19 @@ h1 {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.075);
   font-family: var(--font-display);
   font-size: 18px;
   font-weight: 700;
   line-height: 1;
   transform: translate(16%, 18%);
   text-shadow:
-    102px 18px rgba(255, 255, 255, 0.045),
-    208px 54px rgba(255, 255, 255, 0.04),
-    46px 132px rgba(255, 255, 255, 0.04),
-    168px 126px rgba(255, 255, 255, 0.05),
-    252px 30px rgba(255, 255, 255, 0.04),
-    274px 144px rgba(255, 255, 255, 0.038);
+    102px 18px rgba(255, 255, 255, 0.065),
+    208px 54px rgba(255, 255, 255, 0.058),
+    46px 132px rgba(255, 255, 255, 0.058),
+    168px 126px rgba(255, 255, 255, 0.072),
+    252px 30px rgba(255, 255, 255, 0.058),
+    274px 144px rgba(255, 255, 255, 0.052);
 }
 
 .method-card::before {
@@ -192,19 +192,19 @@ h1 {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  color: rgba(255, 255, 255, 0.045);
+  color: rgba(255, 255, 255, 0.07);
   font-family: var(--font-display);
   font-size: 16px;
   font-weight: 700;
   line-height: 1;
   transform: translate(14%, 20%);
   text-shadow:
-    96px 24px rgba(255, 255, 255, 0.04),
-    206px 40px rgba(255, 255, 255, 0.038),
-    38px 126px rgba(255, 255, 255, 0.04),
-    156px 118px rgba(255, 255, 255, 0.045),
-    266px 18px rgba(255, 255, 255, 0.036),
-    280px 142px rgba(255, 255, 255, 0.04);
+    96px 24px rgba(255, 255, 255, 0.058),
+    206px 40px rgba(255, 255, 255, 0.052),
+    38px 126px rgba(255, 255, 255, 0.058),
+    156px 118px rgba(255, 255, 255, 0.066),
+    266px 18px rgba(255, 255, 255, 0.05),
+    280px 142px rgba(255, 255, 255, 0.058);
 }
 
 .method-kicker {
