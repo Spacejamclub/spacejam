@@ -149,22 +149,20 @@ h1 {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.14;
+  opacity: 0.09;
   background:
-    linear-gradient(rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.82)) 14% 20% / 1px 12px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.82)) 14% 20% / 12px 1px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.68)) 33% 72% / 1px 10px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.68)) 33% 72% / 10px 1px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.88)) 49% 24% / 1px 13px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.88)) 49% 24% / 13px 1px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.6)) 61% 60% / 1px 9px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.6)) 61% 60% / 9px 1px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)) 78% 18% / 1px 11px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)) 78% 18% / 11px 1px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.72)) 86% 49% / 1px 10px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.72)) 86% 49% / 10px 1px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.62)) 74% 78% / 1px 8px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.62)) 74% 78% / 8px 1px no-repeat;
+    linear-gradient(rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.76)) 16% 22% / 1px 7px no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.76)) 16% 22% / 7px 1px no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.62)) 38% 70% / 1px 6px no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.62)) 38% 70% / 6px 1px no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)) 54% 27% / 1px 8px no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)) 54% 27% / 8px 1px no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.56)) 73% 19% / 1px 6px no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.56)) 73% 19% / 6px 1px no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.68)) 83% 54% / 1px 7px no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.68)) 83% 54% / 7px 1px no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)) 68% 78% / 1px 5px no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)) 68% 78% / 5px 1px no-repeat;
 }
 
 .method-kicker {
