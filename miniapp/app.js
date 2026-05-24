@@ -150,7 +150,11 @@ function bindActions() {
 function renderConfig(config) {
   state.config = config;
 
-  $("productTitle").textContent = config.title;
+  const productTitle = $("productTitle");
+  if (productTitle) {
+    productTitle.textContent = config.title;
+  }
+
   $("productPrice").textContent = config.display_price;
   $("policyText").textContent = config.policy_note;
 

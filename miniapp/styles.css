@@ -108,13 +108,13 @@ h1 {
 .pill {
   display: inline-flex;
   align-items: center;
-  min-height: 40px;
-  padding: 0 15px;
-  border: 1px solid var(--line-strong);
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid var(--white);
   border-radius: 999px;
-  background: var(--black);
-  color: var(--white);
-  font-size: 14px;
+  background: var(--white);
+  color: var(--black);
+  font-size: 13px;
   font-weight: 800;
 }
 
