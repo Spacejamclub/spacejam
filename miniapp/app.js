@@ -192,8 +192,8 @@ async function init() {
     state.isTelegramContext = Boolean(tg?.initData);
     tg?.ready();
     tg?.expand();
-    tg?.setHeaderColor?.("#0b1220");
-    tg?.setBackgroundColor?.("#05070c");
+    tg?.setHeaderColor?.("#000000");
+    tg?.setBackgroundColor?.("#000000");
 
     bindActions();
     const config = await loadConfig();

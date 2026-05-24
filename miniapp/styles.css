@@ -1,14 +1,14 @@
 :root {
-  --bg: #050608;
-  --panel: #0c0e12;
-  --panel-soft: #12151a;
-  --text: #f5f7fa;
-  --muted: #9aa3ad;
+  --bg: #000000;
+  --panel: #0a0a0a;
+  --panel-soft: #111111;
+  --text: #ffffff;
+  --muted: #9a9a9a;
   --line: rgba(255, 255, 255, 0.08);
   --line-strong: rgba(255, 255, 255, 0.14);
   --white: #ffffff;
-  --black: #050608;
-  --success: #d8f5e8;
+  --black: #000000;
+  --success: #ffffff;
   --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
   --radius-xl: 28px;
   --radius-lg: 22px;
@@ -237,7 +237,7 @@ h1 {
   padding: 14px 16px;
   border: 1px solid var(--line-strong);
   border-radius: 16px;
-  background: #0a0c10;
+  background: #000000;
   color: #fff;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.34);
   font-size: 14px;
