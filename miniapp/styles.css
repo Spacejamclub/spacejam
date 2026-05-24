@@ -144,25 +144,25 @@ h1 {
 }
 
 .method-stars::before {
-  content: "";
+  content: "✦";
   position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   opacity: 0.09;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.76)) 16% 22% / 1px 7px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.76)) 16% 22% / 7px 1px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.62)) 38% 70% / 1px 6px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.62)) 38% 70% / 6px 1px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)) 54% 27% / 1px 8px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)) 54% 27% / 8px 1px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.56)) 73% 19% / 1px 6px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.56)) 73% 19% / 6px 1px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.68)) 83% 54% / 1px 7px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.68)) 83% 54% / 7px 1px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)) 68% 78% / 1px 5px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)) 68% 78% / 5px 1px no-repeat;
+  color: rgba(255, 255, 255, 0.08);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  transform: translate(16%, 22%);
+  text-shadow:
+    92px 20px rgba(255, 255, 255, 0.07),
+    198px 40px rgba(255, 255, 255, 0.06),
+    34px 126px rgba(255, 255, 255, 0.06),
+    146px 118px rgba(255, 255, 255, 0.075),
+    258px 14px rgba(255, 255, 255, 0.055),
+    272px 138px rgba(255, 255, 255, 0.06);
 }
 
 .method-crypto::before {
@@ -184,6 +184,27 @@ h1 {
     168px 126px rgba(255, 255, 255, 0.05),
     252px 30px rgba(255, 255, 255, 0.04),
     274px 144px rgba(255, 255, 255, 0.038);
+}
+
+.method-card::before {
+  content: "▭";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  color: rgba(255, 255, 255, 0.045);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  transform: translate(14%, 20%);
+  text-shadow:
+    96px 24px rgba(255, 255, 255, 0.04),
+    206px 40px rgba(255, 255, 255, 0.038),
+    38px 126px rgba(255, 255, 255, 0.04),
+    156px 118px rgba(255, 255, 255, 0.045),
+    266px 18px rgba(255, 255, 255, 0.036),
+    280px 142px rgba(255, 255, 255, 0.04);
 }
 
 .method-kicker {
