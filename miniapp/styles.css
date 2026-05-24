@@ -165,6 +165,27 @@ h1 {
     linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)) 68% 78% / 5px 1px no-repeat;
 }
 
+.method-crypto::before {
+  content: "₿";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  color: rgba(255, 255, 255, 0.05);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  transform: translate(16%, 18%);
+  text-shadow:
+    102px 18px rgba(255, 255, 255, 0.045),
+    208px 54px rgba(255, 255, 255, 0.04),
+    46px 132px rgba(255, 255, 255, 0.04),
+    168px 126px rgba(255, 255, 255, 0.05),
+    252px 30px rgba(255, 255, 255, 0.04),
+    274px 144px rgba(255, 255, 255, 0.038);
+}
+
 .method-kicker {
   display: inline-flex;
   align-items: center;
