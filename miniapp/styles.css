@@ -13,8 +13,8 @@
   --radius-xl: 28px;
   --radius-lg: 22px;
   --radius-md: 16px;
-  --font-display: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
-  --font-body: "Avenir Next", "Segoe UI", sans-serif;
+  --font-display: "Sora", "Avenir Next", "Trebuchet MS", sans-serif;
+  --font-body: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
 }
 
 * {
@@ -72,7 +72,8 @@ body {
   color: var(--muted);
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
 }
 
 h1,
@@ -85,6 +86,7 @@ h2 {
 h1 {
   font-size: clamp(32px, 7vw, 46px);
   line-height: 0.94;
+  font-weight: 800;
 }
 
 .lead {
@@ -92,6 +94,7 @@ h1 {
   max-width: 380px;
   color: var(--muted);
   font-size: 15px;
+  font-weight: 500;
   line-height: 1.5;
 }
 
@@ -112,7 +115,7 @@ h1 {
   background: var(--black);
   color: var(--white);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .pill.accent {
@@ -151,6 +154,7 @@ h1 {
   margin-top: 14px;
   font-size: 32px;
   line-height: 0.96;
+  font-weight: 800;
 }
 
 .method-copy {
@@ -158,6 +162,7 @@ h1 {
   max-width: 320px;
   color: var(--muted);
   font-size: 15px;
+  font-weight: 500;
   line-height: 1.48;
 }
 
@@ -219,6 +224,7 @@ h1 {
   margin: 0;
   color: var(--muted);
   font-size: 14px;
+  font-weight: 500;
   line-height: 1.5;
 }
 
