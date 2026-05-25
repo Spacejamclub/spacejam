@@ -7,3 +7,4 @@ __pycache__/
 .cloudflared/*.json
 tools/cloudflared
 tools/cloudflared.tgz
+data/

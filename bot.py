@@ -6,7 +6,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 from urllib.parse import parse_qsl
 
 from aiohttp import ClientSession, web
@@ -35,6 +35,8 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
 MINIAPP_DIR = BASE_DIR / "miniapp"
+DATA_DIR = BASE_DIR / "data"
+STATE_PATH = DATA_DIR / "course_state.json"
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WELCOME_IMAGE_PATH = os.getenv("WELCOME_IMAGE_PATH")
 WELCOME_IMAGE_URL = os.getenv("WELCOME_IMAGE_URL")
@@ -191,6 +193,186 @@ TRACKS = {
     "flat_freestyle": "Флэт фристайл",
     "park": "Парк",
 }
+LESSONS_PER_TRACK = 15
+TOTAL_LESSONS = len(TRACKS) * LESSONS_PER_TRACK
+
+
+def get_user_key(user_id: int) -> str:
+    return str(user_id)
+
+
+def load_course_state() -> dict[str, Any]:
+    if not STATE_PATH.exists():
+        return {"users": {}}
+
+    try:
+        with STATE_PATH.open("r", encoding="utf-8") as file:
+            data = json.load(file)
+    except (OSError, json.JSONDecodeError):
+        logging.exception("Failed to load course state from %s", STATE_PATH)
+        return {"users": {}}
+
+    if not isinstance(data, dict):
+        return {"users": {}}
+
+    users = data.get("users")
+    if not isinstance(users, dict):
+        data["users"] = {}
+
+    return data
+
+
+def save_course_state(state: dict[str, Any]) -> None:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    temp_path = STATE_PATH.with_suffix(".tmp")
+    with temp_path.open("w", encoding="utf-8") as file:
+        json.dump(state, file, ensure_ascii=False, indent=2)
+    temp_path.replace(STATE_PATH)
+
+
+def get_user_record(user_id: int) -> dict[str, Any]:
+    state = load_course_state()
+    return state.get("users", {}).get(get_user_key(user_id), {})
+
+
+def ensure_user_record(state: dict[str, Any], user_id: int) -> dict[str, Any]:
+    users = state.setdefault("users", {})
+    return users.setdefault(
+        get_user_key(user_id),
+        {
+            "has_access": False,
+            "payments": [],
+            "opened_lessons": [],
+            "completed_lessons": [],
+            "activated_at": None,
+            "last_lesson": None,
+        },
+    )
+
+
+def user_has_course_access(user_id: int) -> bool:
+    return bool(get_user_record(user_id).get("has_access"))
+
+
+def build_lesson_code(track_key: str, lesson_number: int) -> str:
+    return f"{track_key}:{lesson_number}"
+
+
+def lesson_sort_key(lesson_code: str) -> tuple[int, int]:
+    track_key, lesson_number_raw = lesson_code.split(":", 1)
+    track_index = list(TRACKS.keys()).index(track_key)
+    return (track_index, int(lesson_number_raw))
+
+
+def grant_course_access(
+    user_id: int,
+    *,
+    amount: int,
+    currency: str,
+    telegram_charge_id: str,
+    provider_charge_id: str,
+    payload: str,
+) -> None:
+    state = load_course_state()
+    record = ensure_user_record(state, user_id)
+    record["has_access"] = True
+    if not record.get("activated_at"):
+        record["activated_at"] = int(time.time())
+
+    payments = record.setdefault("payments", [])
+    already_exists = any(payment.get("telegram_charge_id") == telegram_charge_id for payment in payments)
+    if not already_exists:
+        payments.append(
+            {
+                "amount": amount,
+                "currency": currency,
+                "payload": payload,
+                "telegram_charge_id": telegram_charge_id,
+                "provider_charge_id": provider_charge_id,
+                "paid_at": int(time.time()),
+            }
+        )
+
+    save_course_state(state)
+
+
+def register_lesson_open(user_id: int, track_key: str, lesson_number: int) -> None:
+    state = load_course_state()
+    record = ensure_user_record(state, user_id)
+    lesson_code = build_lesson_code(track_key, lesson_number)
+
+    opened_lessons = set(record.get("opened_lessons", []))
+    opened_lessons.add(lesson_code)
+    record["opened_lessons"] = sorted(opened_lessons, key=lesson_sort_key)
+
+    completed_lessons = set(record.get("completed_lessons", []))
+    completed_lessons.add(lesson_code)
+    record["completed_lessons"] = sorted(completed_lessons, key=lesson_sort_key)
+    record["last_lesson"] = lesson_code
+
+    save_course_state(state)
+
+
+def format_timestamp(timestamp: Optional[int]) -> str:
+    if not timestamp:
+        return "—"
+
+    return time.strftime("%d.%m.%Y %H:%M", time.localtime(timestamp))
+
+
+def build_locked_course_text() -> str:
+    return (
+        "<b>Курс пока закрыт</b>\n\n"
+        "Сначала открой доступ через оплату, и после этого здесь появятся направления и уроки."
+    )
+
+
+def build_locked_course_keyboard() -> InlineKeyboardMarkup:
+    if mini_app_launch_ready():
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="Открыть оплату", web_app=WebAppInfo(url=MINI_APP_URL))],
+            ]
+        )
+
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Оплата пока недоступна", callback_data="payment:unavailable")],
+        ]
+    )
+
+
+def build_progress_text(user_id: int) -> str:
+    record = get_user_record(user_id)
+    has_access = bool(record.get("has_access"))
+    activated_at = format_timestamp(record.get("activated_at"))
+    completed_lessons = record.get("completed_lessons", [])
+    completed_count = len(completed_lessons)
+    progress_percent = int((completed_count / TOTAL_LESSONS) * 100) if TOTAL_LESSONS else 0
+    last_lesson = record.get("last_lesson")
+
+    if last_lesson:
+        track_key, lesson_number_raw = last_lesson.split(":", 1)
+        last_lesson_label = f"{TRACKS.get(track_key, track_key)} · урок {lesson_number_raw}"
+    else:
+        last_lesson_label = "Пока ни один урок не открыт"
+
+    if not has_access:
+        return (
+            "<b>Мой прогресс</b>\n\n"
+            "<b>Доступ:</b> пока не открыт\n"
+            f"<b>Прогресс:</b> 0 из {TOTAL_LESSONS}\n"
+            "<b>Следующий шаг:</b> открыть оплату и получить доступ к курсу"
+        )
+
+    return (
+        "<b>Мой прогресс</b>\n\n"
+        "<b>Доступ:</b> открыт\n"
+        f"<b>Активирован:</b> {activated_at}\n"
+        f"<b>Пройдено:</b> {completed_count} из {TOTAL_LESSONS}\n"
+        f"<b>Процент:</b> {progress_percent}%\n"
+        f"<b>Последний урок:</b> {last_lesson_label}"
+    )
 
 
 def build_course_keyboard() -> InlineKeyboardMarkup:
@@ -745,6 +927,15 @@ async def send_welcome(message: Message) -> None:
 
 
 async def show_course_panel(message: Message) -> None:
+    user_id = message.from_user.id if message.from_user else message.chat.id
+    if not user_has_course_access(user_id):
+        await replace_panel(
+            message,
+            text=build_locked_course_text(),
+            reply_markup=build_locked_course_keyboard(),
+        )
+        return
+
     await replace_panel(
         message,
         text=f"{COURSE_TEXT}\n\nВыберите направление:",
@@ -753,7 +944,8 @@ async def show_course_panel(message: Message) -> None:
 
 
 async def show_progress_panel(message: Message) -> None:
-    await replace_panel(message, text=PROGRESS_TEXT)
+    user_id = message.from_user.id if message.from_user else message.chat.id
+    await replace_panel(message, text=build_progress_text(user_id))
 
 
 async def show_payment_panel(message: Message) -> None:
@@ -799,6 +991,14 @@ async def course_handler(message: Message) -> None:
 @dp.callback_query(F.data == "course:menu")
 async def course_menu_handler(callback: CallbackQuery) -> None:
     await callback.answer()
+    user_id = callback.from_user.id
+    if not user_has_course_access(user_id):
+        await callback.message.edit_text(
+            build_locked_course_text(),
+            reply_markup=build_locked_course_keyboard(),
+        )
+        return
+
     await callback.message.edit_text(
         f"{COURSE_TEXT}\n\nВыберите направление:",
         reply_markup=build_course_keyboard(),
@@ -821,6 +1021,14 @@ async def inline_main_menu_handler(callback: CallbackQuery) -> None:
 @dp.callback_query(F.data == "main:course")
 async def inline_course_handler(callback: CallbackQuery) -> None:
     await callback.answer()
+    user_id = callback.from_user.id
+    if not user_has_course_access(user_id):
+        await callback.message.edit_text(
+            build_locked_course_text(),
+            reply_markup=build_locked_course_keyboard(),
+        )
+        return
+
     await callback.message.edit_text(
         f"{COURSE_TEXT}\n\nВыберите направление:",
         reply_markup=build_course_keyboard(),
@@ -831,7 +1039,7 @@ async def inline_course_handler(callback: CallbackQuery) -> None:
 async def inline_progress_handler(callback: CallbackQuery) -> None:
     await callback.answer()
     await callback.message.edit_text(
-        PROGRESS_TEXT,
+        build_progress_text(callback.from_user.id),
         reply_markup=None,
     )
 
@@ -917,6 +1125,13 @@ async def inline_faq_handler(callback: CallbackQuery) -> None:
 async def track_handler(callback: CallbackQuery) -> None:
     await callback.answer()
     track_key = callback.data.split(":", 1)[1]
+    if not user_has_course_access(callback.from_user.id):
+        await callback.message.edit_text(
+            build_locked_course_text(),
+            reply_markup=build_locked_course_keyboard(),
+        )
+        return
+
     await callback.message.edit_text(
         build_track_text(track_key),
         reply_markup=build_lessons_keyboard(track_key),
@@ -927,6 +1142,14 @@ async def track_handler(callback: CallbackQuery) -> None:
 async def lesson_handler(callback: CallbackQuery) -> None:
     await callback.answer()
     _, track_key, lesson_number = callback.data.split(":")
+    if not user_has_course_access(callback.from_user.id):
+        await callback.message.edit_text(
+            build_locked_course_text(),
+            reply_markup=build_locked_course_keyboard(),
+        )
+        return
+
+    register_lesson_open(callback.from_user.id, track_key, int(lesson_number))
     await callback.message.edit_text(
         build_lesson_text(track_key, int(lesson_number)),
         reply_markup=build_lesson_keyboard(track_key),
@@ -935,9 +1158,14 @@ async def lesson_handler(callback: CallbackQuery) -> None:
 
 @dp.pre_checkout_query()
 async def pre_checkout_query_handler(pre_checkout_query: PreCheckoutQuery) -> None:
-    if not pre_checkout_query.invoice_payload.startswith(f"{PAYMENT_PAYLOAD}:") and (
-        pre_checkout_query.invoice_payload != PAYMENT_PAYLOAD
-    ):
+    valid_payment_payload = pre_checkout_query.invoice_payload.startswith(f"{PAYMENT_PAYLOAD}:") or (
+        pre_checkout_query.invoice_payload == PAYMENT_PAYLOAD
+    )
+    valid_card_payload = pre_checkout_query.invoice_payload.startswith(f"{CARD_PAYLOAD}:") or (
+        pre_checkout_query.invoice_payload == CARD_PAYLOAD
+    )
+
+    if not valid_payment_payload and not valid_card_payload:
         await pre_checkout_query.answer(
             ok=False,
             error_message="Не удалось проверить платеж. Попробуйте еще раз.",
@@ -950,13 +1178,28 @@ async def pre_checkout_query_handler(pre_checkout_query: PreCheckoutQuery) -> No
 @dp.message(F.successful_payment)
 async def successful_payment_handler(message: Message) -> None:
     payment = message.successful_payment
+    user_id = message.from_user.id if message.from_user else message.chat.id
+    grant_course_access(
+        user_id,
+        amount=payment.total_amount,
+        currency=payment.currency,
+        telegram_charge_id=payment.telegram_payment_charge_id,
+        provider_charge_id=payment.provider_payment_charge_id,
+        payload=payment.invoice_payload,
+    )
     await message.answer(
         (
             "<b>Оплата прошла успешно</b>\n\n"
             f"Сумма: {format_payment_amount(payment.total_amount, payment.currency)}\n"
             f"Транзакция: <code>{payment.telegram_payment_charge_id}</code>\n\n"
-            "Следующий шаг: можно автоматически выдать доступ к курсу."
-        )
+            "Доступ к курсу уже открыт. Можно сразу переходить к занятиям."
+        ),
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="Открыть курс", callback_data="main:course")],
+                [InlineKeyboardButton(text="Посмотреть прогресс", callback_data="main:progress")],
+            ]
+        ),
     )
 
 
