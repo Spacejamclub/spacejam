@@ -31,6 +31,23 @@ python3 -m venv .venv
 
 Токен и ссылка на стартовую картинку лежат в `.env`.
 
+## Контент курса
+
+Структура уроков вынесена в:
+
+- [content/courses.json](/Users/space_plug/Desktop/SPACE_JAM/content/courses.json)
+
+В каждом уроке можно заполнять:
+
+- `title`
+- `text`
+- `video_file_id`
+- `video_url`
+- `video_caption`
+
+Если у урока есть `video_file_id`, бот отправит видео прямо в чат Telegram.
+Если вместо этого заполнен `video_url`, бот покажет кнопку на внешнее видео.
+
 ## Оплата
 
 В проекте есть Mini App оплаты с тремя кнопками выбора:

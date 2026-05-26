@@ -1,4 +1,5 @@
 import asyncio
+import html
 import hashlib
 import hmac
 import json
@@ -36,7 +37,9 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent
 MINIAPP_DIR = BASE_DIR / "miniapp"
 DATA_DIR = BASE_DIR / "data"
+CONTENT_DIR = BASE_DIR / "content"
 STATE_PATH = DATA_DIR / "course_state.json"
+COURSES_PATH = CONTENT_DIR / "courses.json"
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WELCOME_IMAGE_PATH = os.getenv("WELCOME_IMAGE_PATH")
 WELCOME_IMAGE_URL = os.getenv("WELCOME_IMAGE_URL")
@@ -187,14 +190,146 @@ WELCOME_TEXT = (
     "Выберите нужный раздел в меню ниже."
 )
 
-TRACKS = {
-    "basics": "Основы",
-    "carving": "Карвинг",
-    "flat_freestyle": "Флэт фристайл",
-    "park": "Парк",
-}
-LESSONS_PER_TRACK = 15
-TOTAL_LESSONS = len(TRACKS) * LESSONS_PER_TRACK
+DEFAULT_TRACKS = [
+    ("basics", "Основы", "База, стойка, баланс и контроль доски."),
+    ("carving", "Карвинг", "Контроль дуги, закантовка и чистые повороты."),
+    ("flat_freestyle", "Флэт фристайл", "Трюки на плоскости, координация и контроль доски."),
+    ("park", "Парк", "Подготовка к фигурам, прыжки и парк."),
+]
+DEFAULT_LESSONS_PER_TRACK = 15
+
+
+def build_default_course_catalog() -> dict[str, Any]:
+    return {
+        "tracks": [
+            {
+                "key": key,
+                "title": title,
+                "description": description,
+                "lessons": [
+                    {
+                        "number": lesson_number,
+                        "title": f"Урок {lesson_number}",
+                        "text": "Добавьте описание урока и ключевые тезисы.",
+                        "video_file_id": "",
+                        "video_url": "",
+                        "video_caption": "",
+                    }
+                    for lesson_number in range(1, DEFAULT_LESSONS_PER_TRACK + 1)
+                ],
+            }
+            for key, title, description in DEFAULT_TRACKS
+        ]
+    }
+
+
+def normalize_course_catalog(raw_catalog: Any) -> dict[str, Any]:
+    if not isinstance(raw_catalog, dict):
+        return build_default_course_catalog()
+
+    raw_tracks = raw_catalog.get("tracks")
+    if not isinstance(raw_tracks, list) or not raw_tracks:
+        return build_default_course_catalog()
+
+    normalized_tracks = []
+    for raw_track in raw_tracks:
+        if not isinstance(raw_track, dict):
+            continue
+
+        track_key = str(raw_track.get("key", "")).strip()
+        track_title = str(raw_track.get("title", "")).strip()
+        if not track_key or not track_title:
+            continue
+
+        track_description = str(raw_track.get("description", "")).strip()
+        raw_lessons = raw_track.get("lessons")
+        if not isinstance(raw_lessons, list):
+            raw_lessons = []
+
+        normalized_lessons = []
+        for index, raw_lesson in enumerate(raw_lessons, start=1):
+            if not isinstance(raw_lesson, dict):
+                continue
+
+            lesson_number_raw = raw_lesson.get("number", index)
+            try:
+                lesson_number = int(lesson_number_raw)
+            except (TypeError, ValueError):
+                lesson_number = index
+
+            normalized_lessons.append(
+                {
+                    "number": lesson_number,
+                    "title": str(raw_lesson.get("title", f"Урок {lesson_number}")).strip() or f"Урок {lesson_number}",
+                    "text": str(raw_lesson.get("text", "")).strip(),
+                    "video_file_id": str(raw_lesson.get("video_file_id", "")).strip(),
+                    "video_url": str(raw_lesson.get("video_url", "")).strip(),
+                    "video_caption": str(raw_lesson.get("video_caption", "")).strip(),
+                }
+            )
+
+        normalized_lessons.sort(key=lambda lesson: lesson["number"])
+        normalized_tracks.append(
+            {
+                "key": track_key,
+                "title": track_title,
+                "description": track_description,
+                "lessons": normalized_lessons,
+            }
+        )
+
+    if not normalized_tracks:
+        return build_default_course_catalog()
+
+    return {"tracks": normalized_tracks}
+
+
+def load_course_catalog() -> dict[str, Any]:
+    if not COURSES_PATH.exists():
+        default_catalog = build_default_course_catalog()
+        CONTENT_DIR.mkdir(parents=True, exist_ok=True)
+        with COURSES_PATH.open("w", encoding="utf-8") as file:
+            json.dump(default_catalog, file, ensure_ascii=False, indent=2)
+        return default_catalog
+
+    try:
+        with COURSES_PATH.open("r", encoding="utf-8") as file:
+            raw_catalog = json.load(file)
+    except (OSError, json.JSONDecodeError):
+        logging.exception("Failed to load course catalog from %s", COURSES_PATH)
+        return build_default_course_catalog()
+
+    return normalize_course_catalog(raw_catalog)
+
+
+COURSE_CATALOG = load_course_catalog()
+TRACKS = {track["key"]: track["title"] for track in COURSE_CATALOG["tracks"]}
+TOTAL_LESSONS = sum(len(track["lessons"]) for track in COURSE_CATALOG["tracks"])
+
+
+def get_track_entries() -> list[dict[str, Any]]:
+    return COURSE_CATALOG["tracks"]
+
+
+def get_track_entry(track_key: str) -> Optional[dict[str, Any]]:
+    for track in get_track_entries():
+        if track["key"] == track_key:
+            return track
+    return None
+
+
+def get_track_lessons(track_key: str) -> list[dict[str, Any]]:
+    track = get_track_entry(track_key)
+    if not track:
+        return []
+    return track["lessons"]
+
+
+def get_lesson_entry(track_key: str, lesson_number: int) -> Optional[dict[str, Any]]:
+    for lesson in get_track_lessons(track_key):
+        if lesson["number"] == lesson_number:
+            return lesson
+    return None
 
 
 def get_user_key(user_id: int) -> str:
@@ -260,7 +395,10 @@ def build_lesson_code(track_key: str, lesson_number: int) -> str:
 
 def lesson_sort_key(lesson_code: str) -> tuple[int, int]:
     track_key, lesson_number_raw = lesson_code.split(":", 1)
-    track_index = list(TRACKS.keys()).index(track_key)
+    try:
+        track_index = list(TRACKS.keys()).index(track_key)
+    except ValueError:
+        track_index = len(TRACKS)
     return (track_index, int(lesson_number_raw))
 
 
@@ -376,24 +514,34 @@ def build_progress_text(user_id: int) -> str:
 
 
 def build_course_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="Основы", callback_data="track:basics")],
-            [InlineKeyboardButton(text="Карвинг", callback_data="track:carving")],
-            [InlineKeyboardButton(text="Флэт фристайл", callback_data="track:flat_freestyle")],
-            [InlineKeyboardButton(text="Парк", callback_data="track:park")],
-        ]
-    )
+    rows = [
+        [InlineKeyboardButton(text=track["title"], callback_data=f"track:{track['key']}")]
+        for track in get_track_entries()
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def build_track_text(track_key: str) -> str:
-    return f"<b>{TRACKS[track_key]}</b>\n\nВыберите занятие от 1 до 15:"
+    track = get_track_entry(track_key)
+    if not track:
+        return "<b>Раздел не найден</b>"
+
+    lines = [f"<b>{html.escape(track['title'])}</b>"]
+    if track.get("description"):
+        lines.append("")
+        lines.append(html.escape(track["description"]))
+
+    lines.append("")
+    lines.append(f"Выберите занятие из {len(track['lessons'])} уроков:")
+    return "\n".join(lines)
 
 
 def build_lessons_keyboard(track_key: str) -> InlineKeyboardMarkup:
     rows = []
     row = []
-    for lesson_number in range(1, 16):
+    lessons = get_track_lessons(track_key)
+    for lesson in lessons:
+        lesson_number = lesson["number"]
         row.append(
             InlineKeyboardButton(
                 text=str(lesson_number),
@@ -421,13 +569,35 @@ def build_lesson_keyboard(track_key: str) -> InlineKeyboardMarkup:
 
 
 def build_lesson_text(track_key: str, lesson_number: int) -> str:
-    track_title = TRACKS[track_key]
-    return (
-        f"<b>{track_title}</b>\n"
-        f"<b>Занятие {lesson_number}</b>\n\n"
-        "Здесь будет материал занятия: видео, текстовые объяснения "
-        "и разбор техники."
-    )
+    track = get_track_entry(track_key)
+    lesson = get_lesson_entry(track_key, lesson_number)
+    if not track or not lesson:
+        return "<b>Урок не найден</b>"
+
+    lines = [
+        f"<b>{html.escape(track['title'])}</b>",
+        f"<b>Урок {lesson_number}. {html.escape(lesson['title'])}</b>",
+    ]
+
+    lesson_text = lesson.get("text")
+    if lesson_text:
+        lines.extend(["", html.escape(lesson_text)])
+
+    if lesson.get("video_file_id"):
+        lines.extend(["", "Видео прикреплено ниже в чате."])
+    elif lesson.get("video_url"):
+        lines.extend(["", "Для этого урока есть отдельная ссылка на видео ниже."])
+    else:
+        lines.extend(["", "Видео для этого урока можно добавить позже через video_file_id или video_url."])
+
+    return "\n".join(lines)
+
+
+def build_lesson_video_caption(track_key: str, lesson: dict[str, Any]) -> str:
+    track = get_track_entry(track_key)
+    track_title = track["title"] if track else track_key
+    title = lesson.get("title") or f"Урок {lesson['number']}"
+    return f"{track_title} · урок {lesson['number']}\n{title}"
 
 
 def mini_app_ready() -> bool:
@@ -974,6 +1144,33 @@ async def handle_unknown(message: Message) -> None:
     )
 
 
+async def send_lesson_attachment(message: Message, track_key: str, lesson_number: int) -> None:
+    lesson = get_lesson_entry(track_key, lesson_number)
+    if not lesson:
+        return
+
+    video_file_id = lesson.get("video_file_id", "").strip()
+    video_url = lesson.get("video_url", "").strip()
+
+    if video_file_id:
+        await message.answer_video(
+            video=video_file_id,
+            caption=build_lesson_video_caption(track_key, lesson),
+            supports_streaming=True,
+        )
+        return
+
+    if video_url:
+        await message.answer(
+            "Открыть видео урока:",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="Смотреть видео", url=video_url)],
+                ]
+            ),
+        )
+
+
 dp = Dispatcher()
 
 
@@ -1132,6 +1329,10 @@ async def track_handler(callback: CallbackQuery) -> None:
         )
         return
 
+    if not get_track_entry(track_key):
+        await callback.answer("Раздел не найден", show_alert=True)
+        return
+
     await callback.message.edit_text(
         build_track_text(track_key),
         reply_markup=build_lessons_keyboard(track_key),
@@ -1142,6 +1343,7 @@ async def track_handler(callback: CallbackQuery) -> None:
 async def lesson_handler(callback: CallbackQuery) -> None:
     await callback.answer()
     _, track_key, lesson_number = callback.data.split(":")
+    lesson_number_int = int(lesson_number)
     if not user_has_course_access(callback.from_user.id):
         await callback.message.edit_text(
             build_locked_course_text(),
@@ -1149,11 +1351,16 @@ async def lesson_handler(callback: CallbackQuery) -> None:
         )
         return
 
-    register_lesson_open(callback.from_user.id, track_key, int(lesson_number))
+    if not get_lesson_entry(track_key, lesson_number_int):
+        await callback.answer("Урок не найден", show_alert=True)
+        return
+
+    register_lesson_open(callback.from_user.id, track_key, lesson_number_int)
     await callback.message.edit_text(
-        build_lesson_text(track_key, int(lesson_number)),
+        build_lesson_text(track_key, lesson_number_int),
         reply_markup=build_lesson_keyboard(track_key),
     )
+    await send_lesson_attachment(callback.message, track_key, lesson_number_int)
 
 
 @dp.pre_checkout_query()

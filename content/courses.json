@@ -1,0 +1,92 @@
+{
+  "tracks": [
+    {
+      "key": "basics",
+      "title": "Основы",
+      "description": "База, стойка, баланс и контроль доски.",
+      "lessons": [
+        { "number": 1, "title": "Урок 1", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 2, "title": "Урок 2", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 3, "title": "Урок 3", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 4, "title": "Урок 4", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 5, "title": "Урок 5", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 6, "title": "Урок 6", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 7, "title": "Урок 7", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 8, "title": "Урок 8", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 9, "title": "Урок 9", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 10, "title": "Урок 10", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 11, "title": "Урок 11", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 12, "title": "Урок 12", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 13, "title": "Урок 13", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 14, "title": "Урок 14", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 15, "title": "Урок 15", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" }
+      ]
+    },
+    {
+      "key": "carving",
+      "title": "Карвинг",
+      "description": "Контроль дуги, закантовка и чистые повороты.",
+      "lessons": [
+        { "number": 1, "title": "Урок 1", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 2, "title": "Урок 2", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 3, "title": "Урок 3", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 4, "title": "Урок 4", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 5, "title": "Урок 5", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 6, "title": "Урок 6", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 7, "title": "Урок 7", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 8, "title": "Урок 8", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 9, "title": "Урок 9", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 10, "title": "Урок 10", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 11, "title": "Урок 11", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 12, "title": "Урок 12", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 13, "title": "Урок 13", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 14, "title": "Урок 14", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 15, "title": "Урок 15", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" }
+      ]
+    },
+    {
+      "key": "flat_freestyle",
+      "title": "Флэт фристайл",
+      "description": "Трюки на плоскости, координация и контроль доски.",
+      "lessons": [
+        { "number": 1, "title": "Урок 1", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 2, "title": "Урок 2", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 3, "title": "Урок 3", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 4, "title": "Урок 4", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 5, "title": "Урок 5", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 6, "title": "Урок 6", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 7, "title": "Урок 7", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 8, "title": "Урок 8", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 9, "title": "Урок 9", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 10, "title": "Урок 10", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 11, "title": "Урок 11", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 12, "title": "Урок 12", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 13, "title": "Урок 13", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 14, "title": "Урок 14", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 15, "title": "Урок 15", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" }
+      ]
+    },
+    {
+      "key": "park",
+      "title": "Парк",
+      "description": "Подготовка к фигурам, прыжки и парк.",
+      "lessons": [
+        { "number": 1, "title": "Урок 1", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 2, "title": "Урок 2", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 3, "title": "Урок 3", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 4, "title": "Урок 4", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 5, "title": "Урок 5", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 6, "title": "Урок 6", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 7, "title": "Урок 7", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 8, "title": "Урок 8", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 9, "title": "Урок 9", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 10, "title": "Урок 10", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 11, "title": "Урок 11", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 12, "title": "Урок 12", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 13, "title": "Урок 13", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 14, "title": "Урок 14", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
+        { "number": 15, "title": "Урок 15", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" }
+      ]
+    }
+  ]
+}
