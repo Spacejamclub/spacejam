@@ -310,6 +310,22 @@ h1 {
   border-color: rgba(255, 255, 255, 0.28);
 }
 
+.promo-feedback {
+  min-height: 20px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.promo-feedback.error {
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.promo-feedback.success {
+  color: rgba(255, 255, 255, 0.82);
+}
+
 .method-copy {
   margin: 10px 0 0;
   max-width: 320px;

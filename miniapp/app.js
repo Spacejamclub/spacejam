@@ -35,6 +35,21 @@ function showDevBanner(message) {
   banner.hidden = false;
 }
 
+function showPromoFeedback(message, kind = "error") {
+  const feedback = $("promoFeedback");
+  feedback.textContent = message;
+  feedback.hidden = false;
+  feedback.classList.remove("error", "success");
+  feedback.classList.add(kind);
+}
+
+function hidePromoFeedback() {
+  const feedback = $("promoFeedback");
+  feedback.hidden = true;
+  feedback.textContent = "";
+  feedback.classList.remove("error", "success");
+}
+
 async function requestJson(url, payload) {
   const response = await fetch(url, {
     method: "POST",
@@ -144,9 +159,10 @@ async function handleCryptoPayment() {
 async function handlePromoActivation() {
   const input = $("promoInput");
   const promoCode = input.value.trim();
+  input.blur();
 
   if (!promoCode) {
-    showToast("Введите промокод");
+    showPromoFeedback("Введите промокод", "error");
     return;
   }
 
@@ -156,12 +172,12 @@ async function handlePromoActivation() {
       promoCode,
     });
     input.value = "";
-    showToast(data.message || "Промокод активирован");
+    showPromoFeedback(data.message || "Промокод активирован", "success");
     window.setTimeout(() => {
       closeMiniAppIfPossible();
     }, 260);
   } catch (error) {
-    showToast(error.message);
+    showPromoFeedback(error.message, "error");
   }
 }
 
@@ -175,6 +191,9 @@ function bindActions() {
       event.preventDefault();
       handlePromoActivation();
     }
+  });
+  $("promoInput").addEventListener("input", () => {
+    hidePromoFeedback();
   });
 }
 
@@ -212,6 +231,7 @@ function renderConfig(config) {
     label: "Активировать",
   });
   $("promoInput").disabled = !config.promo_enabled;
+  hidePromoFeedback();
 }
 
 async function loadConfig() {
