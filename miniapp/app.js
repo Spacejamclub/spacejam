@@ -184,8 +184,6 @@ function renderConfig(config) {
   }
 
   $("productPrice").textContent = config.display_price;
-  $("policyText").textContent = config.policy_note;
-
   if (config.dev_banner) {
     showDevBanner(config.dev_banner);
   }
