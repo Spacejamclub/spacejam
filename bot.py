@@ -987,11 +987,25 @@ async def miniapp_promo_activate_handler(request: web.Request) -> web.Response:
         raise web.HTTPBadRequest(text=json.dumps({"ok": False, "error": "Промокод не подошёл"}))
 
     access_opened_now = grant_course_access_via_promo(user_id, PROMO_CODE)
+    bot: Bot = request.app["bot"]
+
+    previous_panel_message_id = active_panels.get(user_id)
+    if previous_panel_message_id:
+        await safe_delete_message(bot, user_id, previous_panel_message_id)
+        active_panels.pop(user_id, None)
+
+    sent_message = await bot.send_message(
+        chat_id=user_id,
+        text=f"{COURSE_TEXT}\n\nВыберите направление:",
+        reply_markup=build_course_keyboard(),
+    )
+    active_panels[user_id] = sent_message.message_id
+
     return web.json_response(
         {
             "ok": True,
             "granted": access_opened_now,
-            "message": "Доступ к курсу открыт" if access_opened_now else "Промокод уже применён, доступ активен",
+            "message": "Доступ к курсу открыт" if access_opened_now else "Промокод уже применён, курс уже открыт",
         }
     )
 

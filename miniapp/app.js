@@ -157,6 +157,9 @@ async function handlePromoActivation() {
     });
     input.value = "";
     showToast(data.message || "Промокод активирован");
+    window.setTimeout(() => {
+      closeMiniAppIfPossible();
+    }, 260);
   } catch (error) {
     showToast(error.message);
   }
