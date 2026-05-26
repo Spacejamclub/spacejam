@@ -486,8 +486,7 @@ def format_timestamp(timestamp: Optional[int]) -> str:
 def build_locked_course_text() -> str:
     return (
         "<b>Курс пока закрыт</b>\n\n"
-        "Сначала открой доступ через оплату, и после этого здесь появятся направления и уроки.\n\n"
-        "Если у тебя есть промокод, просто отправь его сюда сообщением."
+        "Сначала открой доступ через оплату, и после этого здесь появятся направления и уроки."
     )
 
 
@@ -850,6 +849,7 @@ def build_miniapp_config() -> dict:
     stars_enabled = payment_ready()
     card_enabled = card_payment_ready()
     crypto_enabled = crypto_payment_ready()
+    promo_enabled = bool(PROMO_CODE)
     dev_mode_enabled = mini_app_dev_mode()
 
     return {
@@ -883,6 +883,7 @@ def build_miniapp_config() -> dict:
             else "Готово к внешней крипто-ссылке" if CRYPTO_PAYMENT_URL else "Крипто-счёт ещё не подключён"
         ),
         "crypto_url": CRYPTO_PAYMENT_URL or None,
+        "promo_enabled": promo_enabled,
     }
 
 
@@ -966,6 +967,35 @@ async def miniapp_crypto_link_handler(request: web.Request) -> web.Response:
     return web.json_response({"ok": True, "url": invoice_url, "dev_bypass": validated.get("dev_bypass", False)})
 
 
+async def miniapp_promo_activate_handler(request: web.Request) -> web.Response:
+    if not PROMO_CODE:
+        raise web.HTTPBadRequest(text=json.dumps({"ok": False, "error": "Промокод сейчас недоступен"}))
+
+    request_data = await request.json()
+    init_data = request_data.get("initData", "")
+    promo_code = str(request_data.get("promoCode", "")).strip()
+    if not promo_code:
+        raise web.HTTPBadRequest(text=json.dumps({"ok": False, "error": "Введите промокод"}))
+
+    validated = validate_webapp_init_data(init_data, allow_dev_bypass=True)
+    user = validated.get("user") or {}
+    user_id = user.get("id")
+    if not user_id:
+        raise web.HTTPBadRequest(text=json.dumps({"ok": False, "error": "Не удалось определить пользователя Telegram"}))
+
+    if promo_code.casefold() != PROMO_CODE.casefold():
+        raise web.HTTPBadRequest(text=json.dumps({"ok": False, "error": "Промокод не подошёл"}))
+
+    access_opened_now = grant_course_access_via_promo(user_id, PROMO_CODE)
+    return web.json_response(
+        {
+            "ok": True,
+            "granted": access_opened_now,
+            "message": "Доступ к курсу открыт" if access_opened_now else "Промокод уже применён, доступ активен",
+        }
+    )
+
+
 def build_web_application(bot: Bot) -> web.Application:
     app = web.Application()
     app["bot"] = bot
@@ -977,6 +1007,7 @@ def build_web_application(bot: Bot) -> web.Application:
     app.router.add_post("/miniapp/api/payment/stars-link", miniapp_stars_link_handler)
     app.router.add_post("/miniapp/api/payment/card-link", miniapp_card_link_handler)
     app.router.add_post("/miniapp/api/payment/crypto-link", miniapp_crypto_link_handler)
+    app.router.add_post("/miniapp/api/payment/promo-activate", miniapp_promo_activate_handler)
     return app
 
 
@@ -1462,29 +1493,6 @@ async def faq_handler(message: Message) -> None:
 
 @dp.message()
 async def fallback_handler(message: Message) -> None:
-    text = (message.text or "").strip()
-    if PROMO_CODE and text.casefold() == PROMO_CODE.casefold():
-        user_id = message.from_user.id if message.from_user else message.chat.id
-        access_opened_now = grant_course_access_via_promo(user_id, PROMO_CODE)
-        await hide_user_menu_message(message)
-        await replace_panel(
-            message,
-            text=(
-                "<b>Промокод принят</b>\n\n"
-                "Доступ к курсу открыт. Можно переходить к урокам."
-                if access_opened_now
-                else "<b>Промокод уже применён</b>\n\n"
-                "Доступ к курсу у тебя уже открыт."
-            ),
-            reply_markup=InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [InlineKeyboardButton(text="Открыть курс", callback_data="main:course")],
-                    [InlineKeyboardButton(text="Мой прогресс", callback_data="main:progress")],
-                ]
-            ),
-        )
-        return
-
     await handle_unknown(message)
 
 

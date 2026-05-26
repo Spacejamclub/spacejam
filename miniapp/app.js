@@ -141,10 +141,38 @@ async function handleCryptoPayment() {
   }
 }
 
+async function handlePromoActivation() {
+  const input = $("promoInput");
+  const promoCode = input.value.trim();
+
+  if (!promoCode) {
+    showToast("Введите промокод");
+    return;
+  }
+
+  try {
+    const data = await requestJson("/miniapp/api/payment/promo-activate", {
+      initData: tg?.initData || "",
+      promoCode,
+    });
+    input.value = "";
+    showToast(data.message || "Промокод активирован");
+  } catch (error) {
+    showToast(error.message);
+  }
+}
+
 function bindActions() {
   $("starsButton").addEventListener("click", handleStarsPayment);
   $("cardButton").addEventListener("click", handleCardPayment);
   $("cryptoButton").addEventListener("click", handleCryptoPayment);
+  $("promoButton").addEventListener("click", handlePromoActivation);
+  $("promoInput").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handlePromoActivation();
+    }
+  });
 }
 
 function renderConfig(config) {
@@ -177,6 +205,12 @@ function renderConfig(config) {
     enabled: config.crypto_enabled,
     label: config.crypto_enabled ? "Оплатить криптой" : "Скоро",
   });
+
+  setButtonState("promoButton", {
+    enabled: config.promo_enabled,
+    label: "Активировать",
+  });
+  $("promoInput").disabled = !config.promo_enabled;
 }
 
 async function loadConfig() {

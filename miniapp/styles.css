@@ -240,6 +240,27 @@ h1 {
     29% 48%;
 }
 
+.method-promo::before {
+  content: "S";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  color: rgba(255, 255, 255, 0.065);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  transform: translate(16%, 18%);
+  text-shadow:
+    92px 18px rgba(255, 255, 255, 0.058),
+    192px 42px rgba(255, 255, 255, 0.052),
+    42px 128px rgba(255, 255, 255, 0.052),
+    154px 118px rgba(255, 255, 255, 0.062),
+    258px 24px rgba(255, 255, 255, 0.05),
+    270px 144px rgba(255, 255, 255, 0.05);
+}
+
 .method-kicker {
   display: inline-flex;
   align-items: center;
@@ -259,6 +280,34 @@ h1 {
   font-size: 32px;
   line-height: 0.96;
   font-weight: 800;
+}
+
+.promo-stack {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.promo-input {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 18px;
+  outline: none;
+  background: var(--panel-soft);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.promo-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.promo-input:focus {
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
 .method-copy {
