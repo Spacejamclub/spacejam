@@ -81,6 +81,7 @@ CARD_TITLE=Курс SPACEJAM
 CARD_DESCRIPTION=Доступ к курсу SPACEJAM по сноуборду
 CARD_PAYLOAD=spacejam-card
 CARD_CURRENCY=RUB
+PROMO_CODE=space
 CARD_AMOUNT=9900
 PAYMENT_TITLE=Курс SPACEJAM
 PAYMENT_DESCRIPTION=Доступ к курсу SPACEJAM по сноуборду
@@ -106,6 +107,7 @@ CRYPTO_ACCEPTED_ASSETS=USDT,TON,BTC
 - для Telegram Stars используйте `PAYMENT_CURRENCY=XTR`, тогда `PAYMENT_PROVIDER_TOKEN` можно оставить пустым.
 - `PAYMENT_PROVIDER_TOKEN` выдается через `@BotFather` после подключения платежного провайдера.
 - для цифровых товаров внутри Telegram основной способ оплаты должен быть `XTR`. Карта и крипта обычно используются как внешние сценарии оплаты.
+- если пользователь отправит в чат промокод из `PROMO_CODE`, бот откроет доступ к курсу бесплатно.
 
 ## Cloudflare Tunnel
 

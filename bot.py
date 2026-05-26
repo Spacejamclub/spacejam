@@ -61,6 +61,7 @@ CARD_TITLE = os.getenv("CARD_TITLE", PAYMENT_TITLE).strip()
 CARD_DESCRIPTION = os.getenv("CARD_DESCRIPTION", PAYMENT_DESCRIPTION).strip()
 CARD_PAYLOAD = os.getenv("CARD_PAYLOAD", "spacejam-card").strip()
 CARD_CURRENCY = os.getenv("CARD_CURRENCY", "RUB").strip().upper()
+PROMO_CODE = os.getenv("PROMO_CODE", "space").strip()
 CRYPTO_PAYMENT_URL = os.getenv("CRYPTO_PAYMENT_URL", "").strip()
 CRYPTO_PAY_API_TOKEN = os.getenv("CRYPTO_PAY_API_TOKEN", "").strip()
 CRYPTO_PAY_API_BASE = os.getenv("CRYPTO_PAY_API_BASE", "https://pay.crypt.bot/api").strip().rstrip("/")
@@ -434,6 +435,30 @@ def grant_course_access(
     save_course_state(state)
 
 
+def grant_course_access_via_promo(user_id: int, promo_code: str) -> bool:
+    state = load_course_state()
+    record = ensure_user_record(state, user_id)
+    promo_code_normalized = promo_code.strip().casefold()
+    promo_activations = record.setdefault("promo_activations", [])
+
+    already_used = any(item.get("code", "").casefold() == promo_code_normalized for item in promo_activations)
+    had_access = bool(record.get("has_access"))
+    record["has_access"] = True
+    if not record.get("activated_at"):
+        record["activated_at"] = int(time.time())
+
+    if not already_used:
+        promo_activations.append(
+            {
+                "code": promo_code,
+                "activated_at": int(time.time()),
+            }
+        )
+
+    save_course_state(state)
+    return not had_access
+
+
 def register_lesson_open(user_id: int, track_key: str, lesson_number: int) -> None:
     state = load_course_state()
     record = ensure_user_record(state, user_id)
@@ -461,7 +486,8 @@ def format_timestamp(timestamp: Optional[int]) -> str:
 def build_locked_course_text() -> str:
     return (
         "<b>Курс пока закрыт</b>\n\n"
-        "Сначала открой доступ через оплату, и после этого здесь появятся направления и уроки."
+        "Сначала открой доступ через оплату, и после этого здесь появятся направления и уроки.\n\n"
+        "Если у тебя есть промокод, просто отправь его сюда сообщением."
     )
 
 
@@ -1436,6 +1462,29 @@ async def faq_handler(message: Message) -> None:
 
 @dp.message()
 async def fallback_handler(message: Message) -> None:
+    text = (message.text or "").strip()
+    if PROMO_CODE and text.casefold() == PROMO_CODE.casefold():
+        user_id = message.from_user.id if message.from_user else message.chat.id
+        access_opened_now = grant_course_access_via_promo(user_id, PROMO_CODE)
+        await hide_user_menu_message(message)
+        await replace_panel(
+            message,
+            text=(
+                "<b>Промокод принят</b>\n\n"
+                "Доступ к курсу открыт. Можно переходить к урокам."
+                if access_opened_now
+                else "<b>Промокод уже применён</b>\n\n"
+                "Доступ к курсу у тебя уже открыт."
+            ),
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="Открыть курс", callback_data="main:course")],
+                    [InlineKeyboardButton(text="Мой прогресс", callback_data="main:progress")],
+                ]
+            ),
+        )
+        return
+
     await handle_unknown(message)
 
 
