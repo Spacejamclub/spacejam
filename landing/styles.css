@@ -365,6 +365,7 @@ h3 {
   display: block;
   object-fit: cover;
   background: #000000;
+  pointer-events: none;
 }
 
 .steps {

@@ -1444,7 +1444,7 @@ def build_landing_video_block() -> str:
     if local_video_path.exists():
         return (
             '<div class="video-frame video-frame-portrait">'
-            '<video controls playsinline preload="metadata" poster="/landing/hero.jpg">'
+            '<video class="autoplay-video" autoplay muted loop playsinline preload="auto" poster="/landing/hero.jpg" disablepictureinpicture>'
             '<source src="/landing/intro-video.MP4" type="video/mp4" />'
             "Ваш браузер не поддерживает видео."
             "</video>"
@@ -1506,6 +1506,12 @@ async def landing_page_handler(_: web.Request) -> web.Response:
 
 async def landing_styles_handler(_: web.Request) -> web.FileResponse:
     response = web.FileResponse(LANDING_DIR / "styles.css")
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return response
+
+
+async def landing_script_handler(_: web.Request) -> web.FileResponse:
+    response = web.FileResponse(LANDING_DIR / "app.js")
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return response
 
@@ -1653,6 +1659,7 @@ def build_web_application(bot: Bot) -> web.Application:
     app.router.add_get("/", landing_page_handler)
     app.router.add_get("/landing", landing_page_handler)
     app.router.add_get("/landing/styles.css", landing_styles_handler)
+    app.router.add_get("/landing/app.js", landing_script_handler)
     app.router.add_get("/landing/hero.jpg", landing_hero_handler)
     app.router.add_get("/landing/intro-video.MP4", landing_video_handler)
     app.router.add_get("/healthz", healthz_handler)
