@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SPACEJAM — курс по сноуборду</title>
+    <meta
+      name="description"
+      content="SPACEJAM — Telegram-курс по сноуборду: структура, прогресс, доступ внутри бота и оплата через Mini App."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/landing/styles.css?v=1" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">SPACEJAM</p>
+          <h1>Курс по сноуборду внутри Telegram</h1>
+          <p class="lead">
+            Спокойный вход в курс, структура по направлениям, прогресс по урокам и оплата уже
+            внутри Mini App, когда человек готов зайти глубже.
+          </p>
+          <div class="hero-actions">
+            <a class="landing-button landing-button-white" href="{{BOT_URL}}" target="_blank" rel="noopener noreferrer">
+              Открыть бота
+            </a>
+            <a class="landing-button landing-button-dark" href="#program">Посмотреть программу</a>
+          </div>
+          <div class="hero-pills">
+            <span>Telegram-формат</span>
+            <span>Mini App оплата</span>
+            <span>Прогресс по урокам</span>
+            <span>4 направления</span>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <div class="hero-image-wrap">
+            <img src="{{HERO_IMAGE_URL}}" alt="SPACEJAM snowboarding" />
+          </div>
+        </div>
+      </section>
+
+      <section class="info-grid" id="program">
+        <article class="info-card">
+          <p class="card-label">FORMAT</p>
+          <h2>Как это устроено</h2>
+          <ul>
+            <li>Человек заходит в бота и знакомится с курсом внутри Telegram.</li>
+            <li>Когда готов, переходит в оплату через Mini App.</li>
+            <li>После доступа продолжает обучение и видит свой прогресс.</li>
+          </ul>
+        </article>
+
+        <article class="info-card">
+          <p class="card-label">INSIDE</p>
+          <h2>Что внутри курса</h2>
+          <ul>
+            <li>Основы</li>
+            <li>Карвинг</li>
+            <li>Флэт фристайл</li>
+            <li>Парк</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="video-section" id="video">
+        <div class="video-copy">
+          <p class="card-label">INTRO</p>
+          <h2>Сначала знакомство, потом вход в курс</h2>
+          <p>
+            Эта страница нужна как спокойная точка входа: показать, что это за продукт, как он
+            устроен и куда человек пойдёт дальше.
+          </p>
+        </div>
+        <div class="video-shell">{{VIDEO_BLOCK}}</div>
+      </section>
+
+      <section class="steps">
+        <article class="step-card">
+          <span>01</span>
+          <h3>Открыть бота</h3>
+          <p>Весь курс и дальнейший путь живут внутри Telegram.</p>
+        </article>
+        <article class="step-card">
+          <span>02</span>
+          <h3>Посмотреть оплату</h3>
+          <p>Оплата открывается в Mini App, когда человек уже понимает, куда идёт.</p>
+        </article>
+        <article class="step-card">
+          <span>03</span>
+          <h3>Зайти в обучение</h3>
+          <p>После доступа открываются направления, уроки и прогресс по курсу.</p>
+        </article>
+      </section>
+
+      <section class="cta">
+        <div>
+          <p class="card-label">READY</p>
+          <h2>Переводим человека в бота, а оплату оставляем внутри Mini App</h2>
+        </div>
+        <div class="cta-actions">
+          <a class="landing-button landing-button-white" href="{{BOT_URL}}" target="_blank" rel="noopener noreferrer">
+            Перейти в SPACEJAM bot
+          </a>
+          <a class="landing-button landing-button-dark" href="{{MINIAPP_URL}}" target="_blank" rel="noopener noreferrer">
+            Открыть Mini App
+          </a>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

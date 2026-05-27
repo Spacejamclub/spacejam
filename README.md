@@ -42,8 +42,6 @@ ADMIN_IDS=123456789,987654321
 - `/stats`
 - `/payments`
 - `/students`
-- `/today`
-- `/promos`
 - `/user 123456789` или `/user @username`
 - `/grant 123456789` или `/grant @username`
 - `/revoke 123456789` или `/revoke @username`
@@ -91,6 +89,9 @@ WEB_HOST=127.0.0.1
 WEB_PORT=8080
 MINI_APP_URL=http://127.0.0.1:8080/miniapp
 MINI_APP_DEV_MODE=1
+BOT_USERNAME=SPACE_JAM_C_BOT
+LANDING_VIDEO_URL=
+LANDING_VIDEO_EMBED_URL=
 PAYMENT_PROVIDER_TOKEN=381764678:TEST:12345
 PAYMENT_LINK_URL=
 CARD_PAYMENT_URL=
@@ -118,8 +119,12 @@ CRYPTO_ACCEPTED_ASSETS=USDT,TON,BTC
 
 - `RUN_BOT=1` и `RUN_WEB=1` запускают локально и polling-бота, и Mini App сервер.
 - для отдельного хостинга Mini App используйте `RUN_BOT=0` и `RUN_WEB=1`.
+- корень `/` и `/landing` теперь отдают ознакомительный лендинг, а `/miniapp` остаётся оплатой.
 - `MINI_APP_DEV_MODE=1` включает локальный preview Mini App вне Telegram, чтобы можно было тестировать интерфейс и генерацию ссылок до появления публичного домена.
 - чтобы кнопка `ОПЛАТА` открывала именно Telegram Mini App, `MINI_APP_URL` должен быть публичным `https://...` URL. `http://127.0.0.1...` подходит только для локальной разработки.
+- `BOT_USERNAME` используется для кнопок перехода из лендинга в Telegram.
+- `LANDING_VIDEO_URL` можно использовать как внешнюю ссылку на ознакомительное видео.
+- `LANDING_VIDEO_EMBED_URL` можно использовать для встроенного iframe-видео на лендинге.
 - `CARD_PAYMENT_URL` включает внешний checkout по карте, а `CARD_PROVIDER_TOKEN` включает Telegram invoice для карт внутри card-сценария Mini App.
 - `PAYMENT_AMOUNT` задается в минимальных единицах валюты: `9900` означает `99.00 RUB`.
 - для Telegram Stars используйте `PAYMENT_CURRENCY=XTR`, тогда `PAYMENT_PROVIDER_TOKEN` можно оставить пустым.

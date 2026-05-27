@@ -40,6 +40,7 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
 MINIAPP_DIR = BASE_DIR / "miniapp"
+LANDING_DIR = BASE_DIR / "landing"
 DATA_DIR = BASE_DIR / "data"
 CONTENT_DIR = BASE_DIR / "content"
 STATE_PATH = DATA_DIR / "course_state.json"
@@ -50,6 +51,9 @@ WELCOME_IMAGE_URL = os.getenv("WELCOME_IMAGE_URL")
 MINI_APP_HOST = os.getenv("MINI_APP_HOST", "127.0.0.1").strip()
 MINI_APP_PORT = int(os.getenv("MINI_APP_PORT", "8080").strip())
 MINI_APP_URL = os.getenv("MINI_APP_URL", f"http://{MINI_APP_HOST}:{MINI_APP_PORT}/miniapp").strip()
+BOT_USERNAME = os.getenv("BOT_USERNAME", "SPACE_JAM_C_BOT").strip().lstrip("@")
+LANDING_VIDEO_URL = os.getenv("LANDING_VIDEO_URL", "").strip()
+LANDING_VIDEO_EMBED_URL = os.getenv("LANDING_VIDEO_EMBED_URL", "").strip()
 PAYMENT_PROVIDER_TOKEN = os.getenv("PAYMENT_PROVIDER_TOKEN", "").strip()
 PAYMENT_LINK_URL = os.getenv("PAYMENT_LINK_URL", "").strip()
 CARD_PAYMENT_URL = os.getenv("CARD_PAYMENT_URL", PAYMENT_LINK_URL).strip()
@@ -793,59 +797,6 @@ def build_students_text(limit: int = 20) -> str:
     return "\n".join(lines)
 
 
-def build_today_access_text(limit: int = 20) -> str:
-    today_key = time.strftime("%Y-%m-%d", time.localtime())
-    rows: list[tuple[int, dict[str, Any]]] = []
-    for user_id, record in get_all_user_records():
-        activated_at = record.get("activated_at")
-        if not activated_at:
-            continue
-        if time.strftime("%Y-%m-%d", time.localtime(activated_at)) == today_key:
-            rows.append((user_id, record))
-
-    if not rows:
-        return "<b>Админка · Доступы сегодня</b>\n\nСегодня доступов пока не было."
-
-    rows.sort(key=lambda item: item[1].get("activated_at", 0), reverse=True)
-    lines = ["<b>Админка · Доступы сегодня</b>", ""]
-    for index, (user_id, record) in enumerate(rows[:limit], start=1):
-        lines.append(
-            f"{index}. {build_user_label(user_id, record)} — "
-            f"{build_access_source_label(record)}, "
-            f"{format_timestamp(record.get('activated_at'))}"
-        )
-
-    if len(rows) > limit:
-        lines.extend(["", f"Показаны последние {limit} из {len(rows)}"])
-
-    return "\n".join(lines)
-
-
-def build_promos_text(limit: int = 20) -> str:
-    rows: list[tuple[int, dict[str, Any], dict[str, Any]]] = []
-    for user_id, record in get_all_user_records():
-        for promo in record.get("promo_activations", []):
-            if isinstance(promo, dict):
-                rows.append((user_id, record, promo))
-
-    if not rows:
-        return "<b>Админка · Промокоды</b>\n\nПока активаций нет."
-
-    rows.sort(key=lambda item: item[2].get("activated_at", 0), reverse=True)
-    lines = ["<b>Админка · Промокоды</b>", ""]
-    for index, (user_id, record, promo) in enumerate(rows[:limit], start=1):
-        lines.append(
-            f"{index}. {build_user_label(user_id, record)} — "
-            f"{html.escape(str(promo.get('code', '')))}, "
-            f"{format_timestamp(promo.get('activated_at'))}"
-        )
-
-    if len(rows) > limit:
-        lines.extend(["", f"Показаны последние {limit} из {len(rows)}"])
-
-    return "\n".join(lines)
-
-
 def build_admin_user_text(user_id: int) -> str:
     record = get_user_record(user_id)
     if not record:
@@ -894,22 +845,43 @@ def build_payments_text(limit: int = 20) -> str:
         for payment in record.get("payments", []):
             if isinstance(payment, dict):
                 payment_rows.append((user_id, record, payment))
+    promo_rows: list[tuple[int, dict[str, Any], dict[str, Any]]] = []
 
-    if not payment_rows:
-        return "<b>Админка · Оплаты</b>\n\nПока оплат нет."
+    for user_id, record in get_all_user_records():
+        for promo in record.get("promo_activations", []):
+            if isinstance(promo, dict):
+                promo_rows.append((user_id, record, promo))
+
+    lines = ["<b>Админка · Оплаты и промокоды</b>"]
 
     payment_rows.sort(key=lambda item: item[2].get("paid_at", 0), reverse=True)
-    lines = ["<b>Админка · Оплаты</b>", ""]
-    for index, (user_id, record, payment) in enumerate(payment_rows[:limit], start=1):
-        lines.append(
-            f"{index}. {build_user_label(user_id, record)} — "
-            f"{detect_payment_method(payment)}, "
-            f"{format_payment_amount(int(payment.get('amount', 0)), str(payment.get('currency', '')))}, "
-            f"{format_timestamp(payment.get('paid_at'))}"
-        )
+    lines.extend(["", "<b>Последние оплаты:</b>"])
+    if payment_rows:
+        for index, (user_id, record, payment) in enumerate(payment_rows[:limit], start=1):
+            lines.append(
+                f"{index}. {build_user_label(user_id, record)} — "
+                f"{detect_payment_method(payment)}, "
+                f"{format_payment_amount(int(payment.get('amount', 0)), str(payment.get('currency', '')))}, "
+                f"{format_timestamp(payment.get('paid_at'))}"
+            )
+        if len(payment_rows) > limit:
+            lines.append(f"Показаны последние {limit} из {len(payment_rows)}")
+    else:
+        lines.append("Пока оплат нет.")
 
-    if len(payment_rows) > limit:
-        lines.extend(["", f"Показаны последние {limit} из {len(payment_rows)}"])
+    promo_rows.sort(key=lambda item: item[2].get("activated_at", 0), reverse=True)
+    lines.extend(["", "<b>Последние промокоды:</b>"])
+    if promo_rows:
+        for index, (user_id, record, promo) in enumerate(promo_rows[:limit], start=1):
+            lines.append(
+                f"{index}. {build_user_label(user_id, record)} — "
+                f"{html.escape(str(promo.get('code', '')))}, "
+                f"{format_timestamp(promo.get('activated_at'))}"
+            )
+        if len(promo_rows) > limit:
+            lines.append(f"Показаны последние {limit} из {len(promo_rows)}")
+    else:
+        lines.append("Пока активаций нет.")
 
     return "\n".join(lines)
 
@@ -935,10 +907,8 @@ def build_admin_help_text() -> str:
         "<code>/myid</code> — показать свой Telegram ID\n"
         "<code>/admin</code> — показать это меню\n"
         "<code>/stats</code> — общая статистика\n"
-        "<code>/payments</code> — последние оплаты\n"
+        "<code>/payments</code> — оплаты и промокоды\n"
         "<code>/students</code> — список учеников\n"
-        "<code>/today</code> — кто получил доступ сегодня\n"
-        "<code>/promos</code> — активации промокодов\n"
         "<code>/user 123456789</code> — карточка ученика\n"
         "<code>/grant 123456789</code> — выдать доступ\n"
         "<code>/revoke 123456789</code> — забрать доступ\n\n"
@@ -1040,21 +1010,6 @@ def build_progress_text(user_id: int) -> str:
 
 def build_course_keyboard(user_id: Optional[int] = None) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
-    if user_id is not None:
-        continue_code = get_continue_lesson_code(user_id)
-        if continue_code:
-            parsed = parse_lesson_code(continue_code)
-            if parsed:
-                track_key, lesson_number = parsed
-                rows.append(
-                    [
-                        InlineKeyboardButton(
-                            text="Продолжить обучение",
-                            callback_data=f"lesson:{track_key}:{lesson_number}",
-                        )
-                    ]
-                )
-
     rows.extend([
         [InlineKeyboardButton(text=track["title"], callback_data=f"track:{track['key']}")]
         for track in get_track_entries()
@@ -1153,30 +1108,13 @@ def build_lesson_navigation_row(track_key: str, lesson_number: int) -> list[Inli
     return row
 
 
-def build_lesson_keyboard(user_id: int, track_key: str, lesson_number: int) -> InlineKeyboardMarkup:
+def build_lesson_keyboard(track_key: str, lesson_number: int) -> InlineKeyboardMarkup:
     buttons: list[list[InlineKeyboardButton]] = []
-    if not is_lesson_completed(user_id, track_key, lesson_number):
-        buttons.append(
-            [
-                InlineKeyboardButton(
-                    text="Отметить как пройденный",
-                    callback_data=f"lessondone:{track_key}:{lesson_number}",
-                )
-            ]
-        )
-    else:
-        buttons.append([InlineKeyboardButton(text="Урок пройден ✓", callback_data="lessondone:noop")])
-
     navigation_row = build_lesson_navigation_row(track_key, lesson_number)
     if navigation_row:
         buttons.append(navigation_row)
 
-    buttons.extend(
-        [
-            [InlineKeyboardButton(text="Назад к занятиям", callback_data=f"track:{track_key}")],
-            [InlineKeyboardButton(text="Назад к направлениям", callback_data="course:menu")],
-        ]
-    )
+    buttons.append([InlineKeyboardButton(text="Назад в меню", callback_data="course:menu")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
@@ -1189,7 +1127,7 @@ def build_lesson_text(user_id: int, track_key: str, lesson_number: int) -> str:
     completed_mark = "Пройден" if is_lesson_completed(user_id, track_key, lesson_number) else "Не отмечен"
     lines = [
         f"<b>{html.escape(track['title'])}</b>",
-        f"<b>Урок {lesson_number}. {html.escape(lesson['title'])}</b>",
+        f"<b>{html.escape(lesson['title'])}</b>",
         f"<b>Статус:</b> {completed_mark}",
     ]
 
@@ -1214,6 +1152,13 @@ def build_lesson_video_caption(track_key: str, lesson: dict[str, Any]) -> str:
     return f"{track_title} · урок {lesson['number']}\n{title}"
 
 
+def lesson_has_media(track_key: str, lesson_number: int) -> bool:
+    lesson = get_lesson_entry(track_key, lesson_number)
+    if not lesson:
+        return False
+    return bool(lesson.get("video_file_id", "").strip() or lesson.get("video_url", "").strip())
+
+
 def build_default_bot_commands() -> list[BotCommand]:
     return [
         BotCommand(command="start", description="Открыть главное меню"),
@@ -1226,8 +1171,6 @@ def build_admin_bot_commands() -> list[BotCommand]:
         BotCommand(command="stats", description="Общая статистика"),
         BotCommand(command="payments", description="Последние оплаты"),
         BotCommand(command="students", description="Список учеников"),
-        BotCommand(command="today", description="Доступы за сегодня"),
-        BotCommand(command="promos", description="Активации промокодов"),
         BotCommand(command="grant", description="Выдать доступ по ID"),
         BotCommand(command="revoke", description="Закрыть доступ по ID"),
     ]
@@ -1495,6 +1438,72 @@ def build_miniapp_config() -> dict:
     }
 
 
+def build_landing_video_block() -> str:
+    if LANDING_VIDEO_EMBED_URL:
+        safe_url = html.escape(LANDING_VIDEO_EMBED_URL, quote=True)
+        return (
+            '<div class="video-frame">'
+            f'<iframe src="{safe_url}" title="SPACEJAM intro" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>'
+            "</div>"
+        )
+
+    if LANDING_VIDEO_URL:
+        safe_url = html.escape(LANDING_VIDEO_URL, quote=True)
+        return (
+            '<div class="video-card video-card-link">'
+            '<p class="video-label">VIDEO</p>'
+            "<h3>Ознакомительное видео</h3>"
+            "<p>Открой короткое видео и почувствуй, как устроен курс до оплаты.</p>"
+            f'<a class="landing-button landing-button-white" href="{safe_url}" target="_blank" rel="noopener noreferrer">Смотреть видео</a>'
+            "</div>"
+        )
+
+    return (
+        '<div class="video-card">'
+        '<p class="video-label">VIDEO</p>'
+        "<h3>Ознакомительное видео</h3>"
+        "<p>Блок уже готов. Как только у нас будет ссылка или embed, видео появится здесь без переделки лендинга.</p>"
+        "</div>"
+    )
+
+
+def render_landing_html() -> str:
+    template = (LANDING_DIR / "index.html").read_text(encoding="utf-8")
+    hero_image_url = "/landing/hero.jpg" if (BASE_DIR / "assets" / "welcome.jpg").exists() else ""
+    bot_url = f"https://t.me/{BOT_USERNAME}" if BOT_USERNAME else MINI_APP_URL
+    replacements = {
+        "{{BOT_URL}}": html.escape(bot_url, quote=True),
+        "{{MINIAPP_URL}}": html.escape(MINI_APP_URL, quote=True),
+        "{{HERO_IMAGE_URL}}": html.escape(hero_image_url, quote=True),
+        "{{VIDEO_BLOCK}}": build_landing_video_block(),
+    }
+
+    rendered = template
+    for placeholder, value in replacements.items():
+        rendered = rendered.replace(placeholder, value)
+    return rendered
+
+
+async def landing_page_handler(_: web.Request) -> web.Response:
+    return web.Response(
+        text=render_landing_html(),
+        content_type="text/html",
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"},
+    )
+
+
+async def landing_styles_handler(_: web.Request) -> web.FileResponse:
+    response = web.FileResponse(LANDING_DIR / "styles.css")
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return response
+
+
+async def landing_hero_handler(_: web.Request) -> web.FileResponse:
+    response = web.FileResponse(BASE_DIR / "assets" / "welcome.jpg")
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return response
+
+
 async def miniapp_page_handler(_: web.Request) -> web.FileResponse:
     response = web.FileResponse(MINIAPP_DIR / "index.html")
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -1623,6 +1632,10 @@ async def miniapp_promo_activate_handler(request: web.Request) -> web.Response:
 def build_web_application(bot: Bot) -> web.Application:
     app = web.Application()
     app["bot"] = bot
+    app.router.add_get("/", landing_page_handler)
+    app.router.add_get("/landing", landing_page_handler)
+    app.router.add_get("/landing/styles.css", landing_styles_handler)
+    app.router.add_get("/landing/hero.jpg", landing_hero_handler)
     app.router.add_get("/healthz", healthz_handler)
     app.router.add_get("/miniapp", miniapp_page_handler)
     app.router.add_get("/miniapp/styles.css", miniapp_styles_handler)
@@ -1893,24 +1906,6 @@ async def admin_payments_handler(message: Message) -> None:
     await message.answer(build_payments_text())
 
 
-@dp.message(Command("today"))
-async def admin_today_handler(message: Message) -> None:
-    sync_aiogram_user(message.from_user)
-    if not await ensure_admin(message):
-        return
-
-    await message.answer(build_today_access_text())
-
-
-@dp.message(Command("promos"))
-async def admin_promos_handler(message: Message) -> None:
-    sync_aiogram_user(message.from_user)
-    if not await ensure_admin(message):
-        return
-
-    await message.answer(build_promos_text())
-
-
 @dp.message(Command("students"))
 async def admin_students_handler(message: Message) -> None:
     sync_aiogram_user(message.from_user)
@@ -2170,38 +2165,13 @@ async def lesson_handler(callback: CallbackQuery) -> None:
         return
 
     register_lesson_open(callback.from_user.id, track_key, lesson_number_int)
+    if lesson_has_media(track_key, lesson_number_int):
+        mark_lesson_completed(callback.from_user.id, track_key, lesson_number_int)
     await callback.message.edit_text(
         build_lesson_text(callback.from_user.id, track_key, lesson_number_int),
-        reply_markup=build_lesson_keyboard(callback.from_user.id, track_key, lesson_number_int),
+        reply_markup=build_lesson_keyboard(track_key, lesson_number_int),
     )
     await send_lesson_attachment(callback.message, track_key, lesson_number_int)
-
-
-@dp.callback_query(F.data == "lessondone:noop")
-async def lesson_done_noop_handler(callback: CallbackQuery) -> None:
-    sync_aiogram_user(callback.from_user)
-    await callback.answer("Урок уже отмечен")
-
-
-@dp.callback_query(F.data.startswith("lessondone:"))
-async def lesson_done_handler(callback: CallbackQuery) -> None:
-    sync_aiogram_user(callback.from_user)
-    await callback.answer()
-
-    _, track_key, lesson_number = callback.data.split(":")
-    lesson_number_int = int(lesson_number)
-    if not user_has_course_access(callback.from_user.id):
-        await callback.message.edit_text(
-            build_locked_course_text(),
-            reply_markup=build_locked_course_keyboard(),
-        )
-        return
-
-    mark_lesson_completed(callback.from_user.id, track_key, lesson_number_int)
-    await callback.message.edit_text(
-        build_lesson_text(callback.from_user.id, track_key, lesson_number_int),
-        reply_markup=build_lesson_keyboard(callback.from_user.id, track_key, lesson_number_int),
-    )
 
 
 @dp.callback_query(F.data.startswith("admin:"))
