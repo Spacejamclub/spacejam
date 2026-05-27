@@ -16,6 +16,9 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandStart
 from aiogram.types import (
+    BotCommand,
+    BotCommandScopeChat,
+    BotCommandScopeDefault,
     CallbackQuery,
     FSInputFile,
     InlineKeyboardButton,
@@ -473,6 +476,41 @@ def lesson_sort_key(lesson_code: str) -> tuple[int, int]:
     return (track_index, int(lesson_number_raw))
 
 
+def parse_lesson_code(lesson_code: str) -> Optional[tuple[str, int]]:
+    if ":" not in lesson_code:
+        return None
+    track_key, lesson_number_raw = lesson_code.split(":", 1)
+    try:
+        return track_key, int(lesson_number_raw)
+    except ValueError:
+        return None
+
+
+def get_ordered_lesson_codes() -> list[str]:
+    lesson_codes: list[str] = []
+    for track in get_track_entries():
+        for lesson in track["lessons"]:
+            lesson_codes.append(build_lesson_code(track["key"], lesson["number"]))
+    return lesson_codes
+
+
+def get_first_lesson_code() -> Optional[str]:
+    ordered = get_ordered_lesson_codes()
+    return ordered[0] if ordered else None
+
+
+def get_adjacent_lesson_codes(track_key: str, lesson_number: int) -> tuple[Optional[str], Optional[str]]:
+    current_code = build_lesson_code(track_key, lesson_number)
+    ordered = get_ordered_lesson_codes()
+    if current_code not in ordered:
+        return (None, None)
+
+    current_index = ordered.index(current_code)
+    previous_code = ordered[current_index - 1] if current_index > 0 else None
+    next_code = ordered[current_index + 1] if current_index + 1 < len(ordered) else None
+    return (previous_code, next_code)
+
+
 def grant_course_access(
     user_id: int,
     *,
@@ -562,14 +600,52 @@ def register_lesson_open(user_id: int, track_key: str, lesson_number: int) -> No
     opened_lessons = set(record.get("opened_lessons", []))
     opened_lessons.add(lesson_code)
     record["opened_lessons"] = sorted(opened_lessons, key=lesson_sort_key)
-
-    completed_lessons = set(record.get("completed_lessons", []))
-    completed_lessons.add(lesson_code)
-    record["completed_lessons"] = sorted(completed_lessons, key=lesson_sort_key)
     record["last_lesson"] = lesson_code
 
     touch_user_record(record)
     save_course_state(state)
+
+
+def mark_lesson_completed(user_id: int, track_key: str, lesson_number: int) -> bool:
+    state = load_course_state()
+    record = ensure_user_record(state, user_id)
+    lesson_code = build_lesson_code(track_key, lesson_number)
+    completed_lessons = set(record.get("completed_lessons", []))
+    already_completed = lesson_code in completed_lessons
+    completed_lessons.add(lesson_code)
+    record["completed_lessons"] = sorted(completed_lessons, key=lesson_sort_key)
+    record["last_lesson"] = lesson_code
+    touch_user_record(record)
+    save_course_state(state)
+    return not already_completed
+
+
+def is_lesson_completed(user_id: int, track_key: str, lesson_number: int) -> bool:
+    record = get_user_record(user_id)
+    lesson_code = build_lesson_code(track_key, lesson_number)
+    return lesson_code in set(record.get("completed_lessons", []))
+
+
+def get_continue_lesson_code(user_id: int) -> Optional[str]:
+    record = get_user_record(user_id)
+    ordered = get_ordered_lesson_codes()
+    if not ordered:
+        return None
+
+    last_lesson = record.get("last_lesson")
+    completed_lessons = set(record.get("completed_lessons", []))
+    if not last_lesson:
+        return ordered[0]
+
+    if last_lesson not in completed_lessons:
+        return last_lesson
+
+    if last_lesson in ordered:
+        current_index = ordered.index(last_lesson)
+        if current_index + 1 < len(ordered):
+            return ordered[current_index + 1]
+
+    return last_lesson
 
 
 def format_timestamp(timestamp: Optional[int]) -> str:
@@ -591,6 +667,24 @@ def parse_target_user_id(raw_value: str) -> Optional[int]:
         return int(value)
     except ValueError:
         return None
+
+
+def resolve_target_user_id(raw_value: str) -> Optional[int]:
+    direct_user_id = parse_target_user_id(raw_value)
+    if direct_user_id is not None:
+        return direct_user_id
+
+    normalized_username = raw_value.strip().lstrip("@").casefold()
+    if not normalized_username:
+        return None
+
+    for user_id, record in get_all_user_records():
+        profile = record.get("profile", {})
+        username = str(profile.get("username", "")).strip().casefold()
+        if username == normalized_username:
+            return user_id
+
+    return None
 
 
 def get_all_user_records() -> list[tuple[int, dict[str, Any]]]:
@@ -643,6 +737,33 @@ def build_admin_stats_text() -> str:
     )
 
 
+def detect_payment_method(payment: dict[str, Any]) -> str:
+    currency = str(payment.get("currency", "")).upper()
+    payload = str(payment.get("payload", ""))
+
+    if currency == "XTR":
+        return "Stars"
+    if payload.startswith(f"{CARD_PAYLOAD}:") or payload == CARD_PAYLOAD:
+        return "Карта"
+    return "Telegram payment"
+
+
+def build_access_source_label(record: dict[str, Any]) -> str:
+    payments = record.get("payments", [])
+    promo_activations = record.get("promo_activations", [])
+    manual_source = record.get("manual_access_source")
+
+    if payments:
+        return detect_payment_method(payments[-1])
+    if promo_activations:
+        return "Промокод"
+    if manual_source:
+        return "Выдано вручную"
+    if record.get("has_access"):
+        return "Открыт"
+    return "—"
+
+
 def build_students_text(limit: int = 20) -> str:
     users = get_all_user_records()
     if not users:
@@ -661,12 +782,66 @@ def build_students_text(limit: int = 20) -> str:
     for index, (user_id, record) in enumerate(sorted_users[:limit], start=1):
         access_mark = "доступ" if record.get("has_access") else "без доступа"
         progress = len(record.get("completed_lessons", []))
+        source_label = build_access_source_label(record)
         lines.append(
-            f"{index}. {build_user_label(user_id, record)} — {access_mark}, уроков: {progress}"
+            f"{index}. {build_user_label(user_id, record)} — {access_mark}, {source_label}, уроков: {progress}"
         )
 
     if len(sorted_users) > limit:
         lines.extend(["", f"Показаны первые {limit} из {len(sorted_users)}"])
+
+    return "\n".join(lines)
+
+
+def build_today_access_text(limit: int = 20) -> str:
+    today_key = time.strftime("%Y-%m-%d", time.localtime())
+    rows: list[tuple[int, dict[str, Any]]] = []
+    for user_id, record in get_all_user_records():
+        activated_at = record.get("activated_at")
+        if not activated_at:
+            continue
+        if time.strftime("%Y-%m-%d", time.localtime(activated_at)) == today_key:
+            rows.append((user_id, record))
+
+    if not rows:
+        return "<b>Админка · Доступы сегодня</b>\n\nСегодня доступов пока не было."
+
+    rows.sort(key=lambda item: item[1].get("activated_at", 0), reverse=True)
+    lines = ["<b>Админка · Доступы сегодня</b>", ""]
+    for index, (user_id, record) in enumerate(rows[:limit], start=1):
+        lines.append(
+            f"{index}. {build_user_label(user_id, record)} — "
+            f"{build_access_source_label(record)}, "
+            f"{format_timestamp(record.get('activated_at'))}"
+        )
+
+    if len(rows) > limit:
+        lines.extend(["", f"Показаны последние {limit} из {len(rows)}"])
+
+    return "\n".join(lines)
+
+
+def build_promos_text(limit: int = 20) -> str:
+    rows: list[tuple[int, dict[str, Any], dict[str, Any]]] = []
+    for user_id, record in get_all_user_records():
+        for promo in record.get("promo_activations", []):
+            if isinstance(promo, dict):
+                rows.append((user_id, record, promo))
+
+    if not rows:
+        return "<b>Админка · Промокоды</b>\n\nПока активаций нет."
+
+    rows.sort(key=lambda item: item[2].get("activated_at", 0), reverse=True)
+    lines = ["<b>Админка · Промокоды</b>", ""]
+    for index, (user_id, record, promo) in enumerate(rows[:limit], start=1):
+        lines.append(
+            f"{index}. {build_user_label(user_id, record)} — "
+            f"{html.escape(str(promo.get('code', '')))}, "
+            f"{format_timestamp(promo.get('activated_at'))}"
+        )
+
+    if len(rows) > limit:
+        lines.extend(["", f"Показаны последние {limit} из {len(rows)}"])
 
     return "\n".join(lines)
 
@@ -681,17 +856,93 @@ def build_admin_user_text(user_id: int) -> str:
     completed_count = len(record.get("completed_lessons", []))
     opened_count = len(record.get("opened_lessons", []))
     last_lesson = record.get("last_lesson") or "—"
+    payment_lines = [
+        f"• {detect_payment_method(payment)} · {format_payment_amount(int(payment.get('amount', 0)), str(payment.get('currency', '')))} · {format_timestamp(payment.get('paid_at'))}"
+        for payment in payments[-5:]
+    ]
+    promo_lines = [
+        f"• {html.escape(str(item.get('code', '')))} · {format_timestamp(item.get('activated_at'))}"
+        for item in promos[-5:]
+    ]
 
+    lines = [
+        "<b>Админка · Карточка ученика</b>",
+        "",
+        f"<b>Пользователь:</b> {build_user_label(user_id, record)}",
+        f"<b>Доступ:</b> {'открыт' if record.get('has_access') else 'закрыт'}",
+        f"<b>Источник доступа:</b> {build_access_source_label(record)}",
+        f"<b>Активирован:</b> {format_timestamp(record.get('activated_at'))}",
+        f"<b>Оплат:</b> {len(payments)}",
+        f"<b>Промокодов:</b> {len(promos)}",
+        f"<b>Открыто уроков:</b> {opened_count}",
+        f"<b>Пройдено уроков:</b> {completed_count}",
+        f"<b>Последний урок:</b> {html.escape(str(last_lesson))}",
+    ]
+
+    if payment_lines:
+        lines.extend(["", "<b>Последние оплаты:</b>", *payment_lines])
+
+    if promo_lines:
+        lines.extend(["", "<b>Последние промокоды:</b>", *promo_lines])
+
+    return "\n".join(lines)
+
+
+def build_payments_text(limit: int = 20) -> str:
+    payment_rows: list[tuple[int, dict[str, Any], dict[str, Any]]] = []
+    for user_id, record in get_all_user_records():
+        for payment in record.get("payments", []):
+            if isinstance(payment, dict):
+                payment_rows.append((user_id, record, payment))
+
+    if not payment_rows:
+        return "<b>Админка · Оплаты</b>\n\nПока оплат нет."
+
+    payment_rows.sort(key=lambda item: item[2].get("paid_at", 0), reverse=True)
+    lines = ["<b>Админка · Оплаты</b>", ""]
+    for index, (user_id, record, payment) in enumerate(payment_rows[:limit], start=1):
+        lines.append(
+            f"{index}. {build_user_label(user_id, record)} — "
+            f"{detect_payment_method(payment)}, "
+            f"{format_payment_amount(int(payment.get('amount', 0)), str(payment.get('currency', '')))}, "
+            f"{format_timestamp(payment.get('paid_at'))}"
+        )
+
+    if len(payment_rows) > limit:
+        lines.extend(["", f"Показаны последние {limit} из {len(payment_rows)}"])
+
+    return "\n".join(lines)
+
+
+def build_admin_user_keyboard(user_id: int) -> InlineKeyboardMarkup:
+    record = get_user_record(user_id)
+    access_open = bool(record.get("has_access"))
+    toggle_button = InlineKeyboardButton(
+        text="Закрыть доступ" if access_open else "Выдать доступ",
+        callback_data=f"admin:{'revoke' if access_open else 'grant'}:{user_id}",
+    )
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [toggle_button],
+            [InlineKeyboardButton(text="Обновить карточку", callback_data=f"admin:user:{user_id}")],
+        ]
+    )
+
+
+def build_admin_help_text() -> str:
     return (
-        "<b>Админка · Карточка ученика</b>\n\n"
-        f"<b>Пользователь:</b> {build_user_label(user_id, record)}\n"
-        f"<b>Доступ:</b> {'открыт' if record.get('has_access') else 'закрыт'}\n"
-        f"<b>Активирован:</b> {format_timestamp(record.get('activated_at'))}\n"
-        f"<b>Оплат:</b> {len(payments)}\n"
-        f"<b>Промокодов:</b> {len(promos)}\n"
-        f"<b>Открыто уроков:</b> {opened_count}\n"
-        f"<b>Пройдено уроков:</b> {completed_count}\n"
-        f"<b>Последний урок:</b> {html.escape(str(last_lesson))}"
+        "<b>Админка · Команды</b>\n\n"
+        "<code>/myid</code> — показать свой Telegram ID\n"
+        "<code>/admin</code> — показать это меню\n"
+        "<code>/stats</code> — общая статистика\n"
+        "<code>/payments</code> — последние оплаты\n"
+        "<code>/students</code> — список учеников\n"
+        "<code>/today</code> — кто получил доступ сегодня\n"
+        "<code>/promos</code> — активации промокодов\n"
+        "<code>/user 123456789</code> — карточка ученика\n"
+        "<code>/grant 123456789</code> — выдать доступ\n"
+        "<code>/revoke 123456789</code> — забрать доступ\n\n"
+        "Для /user, /grant и /revoke можно использовать и <code>@username</code>."
     )
 
 
@@ -700,7 +951,6 @@ async def ensure_admin(message: Message) -> bool:
     if is_admin_user(user_id):
         return True
 
-    await message.answer("Эта команда доступна только администратору.")
     return False
 
 
@@ -731,15 +981,31 @@ def build_progress_text(user_id: int) -> str:
     has_access = bool(record.get("has_access"))
     activated_at = format_timestamp(record.get("activated_at"))
     completed_lessons = record.get("completed_lessons", [])
+    opened_lessons = record.get("opened_lessons", [])
     completed_count = len(completed_lessons)
     progress_percent = int((completed_count / TOTAL_LESSONS) * 100) if TOTAL_LESSONS else 0
     last_lesson = record.get("last_lesson")
+    continue_code = get_continue_lesson_code(user_id)
 
     if last_lesson:
-        track_key, lesson_number_raw = last_lesson.split(":", 1)
-        last_lesson_label = f"{TRACKS.get(track_key, track_key)} · урок {lesson_number_raw}"
+        parsed_last = parse_lesson_code(last_lesson)
+        if parsed_last:
+            track_key, lesson_number_raw = parsed_last
+            last_lesson_label = f"{TRACKS.get(track_key, track_key)} · урок {lesson_number_raw}"
+        else:
+            last_lesson_label = "Пока ни один урок не открыт"
     else:
         last_lesson_label = "Пока ни один урок не открыт"
+
+    if continue_code:
+        parsed_continue = parse_lesson_code(continue_code)
+        if parsed_continue:
+            continue_track_key, continue_lesson_number = parsed_continue
+            continue_label = f"{TRACKS.get(continue_track_key, continue_track_key)} · урок {continue_lesson_number}"
+        else:
+            continue_label = "—"
+    else:
+        continue_label = "—"
 
     if not has_access:
         return (
@@ -749,21 +1015,50 @@ def build_progress_text(user_id: int) -> str:
             "<b>Следующий шаг:</b> открыть оплату и получить доступ к курсу"
         )
 
+    track_progress_lines = []
+    completed_lesson_codes = set(completed_lessons)
+    for track in get_track_entries():
+        track_completed = sum(
+            1 for lesson in track["lessons"] if build_lesson_code(track["key"], lesson["number"]) in completed_lesson_codes
+        )
+        track_progress_lines.append(
+            f"• <b>{html.escape(track['title'])}</b>: {track_completed}/{len(track['lessons'])}"
+        )
+
     return (
         "<b>Мой прогресс</b>\n\n"
         "<b>Доступ:</b> открыт\n"
         f"<b>Активирован:</b> {activated_at}\n"
+        f"<b>Открыто уроков:</b> {len(opened_lessons)}\n"
         f"<b>Пройдено:</b> {completed_count} из {TOTAL_LESSONS}\n"
         f"<b>Процент:</b> {progress_percent}%\n"
-        f"<b>Последний урок:</b> {last_lesson_label}"
+        f"<b>Последний урок:</b> {last_lesson_label}\n"
+        f"<b>Продолжить:</b> {continue_label}\n\n"
+        + "\n".join(track_progress_lines)
     )
 
 
-def build_course_keyboard() -> InlineKeyboardMarkup:
-    rows = [
+def build_course_keyboard(user_id: Optional[int] = None) -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = []
+    if user_id is not None:
+        continue_code = get_continue_lesson_code(user_id)
+        if continue_code:
+            parsed = parse_lesson_code(continue_code)
+            if parsed:
+                track_key, lesson_number = parsed
+                rows.append(
+                    [
+                        InlineKeyboardButton(
+                            text="Продолжить обучение",
+                            callback_data=f"lesson:{track_key}:{lesson_number}",
+                        )
+                    ]
+                )
+
+    rows.extend([
         [InlineKeyboardButton(text=track["title"], callback_data=f"track:{track['key']}")]
         for track in get_track_entries()
-    ]
+    ])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -782,15 +1077,18 @@ def build_track_text(track_key: str) -> str:
     return "\n".join(lines)
 
 
-def build_lessons_keyboard(track_key: str) -> InlineKeyboardMarkup:
+def build_lessons_keyboard(user_id: int, track_key: str) -> InlineKeyboardMarkup:
     rows = []
     row = []
+    completed_lesson_codes = set(get_user_record(user_id).get("completed_lessons", []))
     lessons = get_track_lessons(track_key)
     for lesson in lessons:
         lesson_number = lesson["number"]
+        lesson_code = build_lesson_code(track_key, lesson_number)
+        lesson_label = f"{lesson_number}✓" if lesson_code in completed_lesson_codes else str(lesson_number)
         row.append(
             InlineKeyboardButton(
-                text=str(lesson_number),
+                text=lesson_label,
                 callback_data=f"lesson:{track_key}:{lesson_number}",
             )
         )
@@ -805,24 +1103,94 @@ def build_lessons_keyboard(track_key: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def build_lesson_keyboard(track_key: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
+def build_progress_keyboard(user_id: int) -> Optional[InlineKeyboardMarkup]:
+    continue_code = get_continue_lesson_code(user_id)
+    buttons: list[list[InlineKeyboardButton]] = []
+
+    if continue_code:
+        parsed = parse_lesson_code(continue_code)
+        if parsed:
+            track_key, lesson_number = parsed
+            buttons.append(
+                [
+                    InlineKeyboardButton(
+                        text="Продолжить обучение",
+                        callback_data=f"lesson:{track_key}:{lesson_number}",
+                    )
+                ]
+            )
+
+    buttons.append([InlineKeyboardButton(text="Открыть направления", callback_data="course:menu")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def build_lesson_navigation_row(track_key: str, lesson_number: int) -> list[InlineKeyboardButton]:
+    previous_code, next_code = get_adjacent_lesson_codes(track_key, lesson_number)
+    row: list[InlineKeyboardButton] = []
+
+    if previous_code:
+        previous_parsed = parse_lesson_code(previous_code)
+        if previous_parsed:
+            prev_track_key, prev_lesson_number = previous_parsed
+            row.append(
+                InlineKeyboardButton(
+                    text="← Назад",
+                    callback_data=f"lesson:{prev_track_key}:{prev_lesson_number}",
+                )
+            )
+
+    if next_code:
+        next_parsed = parse_lesson_code(next_code)
+        if next_parsed:
+            next_track_key, next_lesson_number = next_parsed
+            row.append(
+                InlineKeyboardButton(
+                    text="Дальше →",
+                    callback_data=f"lesson:{next_track_key}:{next_lesson_number}",
+                )
+            )
+
+    return row
+
+
+def build_lesson_keyboard(user_id: int, track_key: str, lesson_number: int) -> InlineKeyboardMarkup:
+    buttons: list[list[InlineKeyboardButton]] = []
+    if not is_lesson_completed(user_id, track_key, lesson_number):
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="Отметить как пройденный",
+                    callback_data=f"lessondone:{track_key}:{lesson_number}",
+                )
+            ]
+        )
+    else:
+        buttons.append([InlineKeyboardButton(text="Урок пройден ✓", callback_data="lessondone:noop")])
+
+    navigation_row = build_lesson_navigation_row(track_key, lesson_number)
+    if navigation_row:
+        buttons.append(navigation_row)
+
+    buttons.extend(
+        [
             [InlineKeyboardButton(text="Назад к занятиям", callback_data=f"track:{track_key}")],
             [InlineKeyboardButton(text="Назад к направлениям", callback_data="course:menu")],
         ]
     )
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def build_lesson_text(track_key: str, lesson_number: int) -> str:
+def build_lesson_text(user_id: int, track_key: str, lesson_number: int) -> str:
     track = get_track_entry(track_key)
     lesson = get_lesson_entry(track_key, lesson_number)
     if not track or not lesson:
         return "<b>Урок не найден</b>"
 
+    completed_mark = "Пройден" if is_lesson_completed(user_id, track_key, lesson_number) else "Не отмечен"
     lines = [
         f"<b>{html.escape(track['title'])}</b>",
         f"<b>Урок {lesson_number}. {html.escape(lesson['title'])}</b>",
+        f"<b>Статус:</b> {completed_mark}",
     ]
 
     lesson_text = lesson.get("text")
@@ -844,6 +1212,25 @@ def build_lesson_video_caption(track_key: str, lesson: dict[str, Any]) -> str:
     track_title = track["title"] if track else track_key
     title = lesson.get("title") or f"Урок {lesson['number']}"
     return f"{track_title} · урок {lesson['number']}\n{title}"
+
+
+def build_default_bot_commands() -> list[BotCommand]:
+    return [
+        BotCommand(command="start", description="Открыть главное меню"),
+        BotCommand(command="myid", description="Показать мой Telegram ID"),
+    ]
+
+
+def build_admin_bot_commands() -> list[BotCommand]:
+    return [
+        BotCommand(command="stats", description="Общая статистика"),
+        BotCommand(command="payments", description="Последние оплаты"),
+        BotCommand(command="students", description="Список учеников"),
+        BotCommand(command="today", description="Доступы за сегодня"),
+        BotCommand(command="promos", description="Активации промокодов"),
+        BotCommand(command="grant", description="Выдать доступ по ID"),
+        BotCommand(command="revoke", description="Закрыть доступ по ID"),
+    ]
 
 
 def mini_app_ready() -> bool:
@@ -1220,7 +1607,7 @@ async def miniapp_promo_activate_handler(request: web.Request) -> web.Response:
     sent_message = await bot.send_message(
         chat_id=user_id,
         text=f"{COURSE_TEXT}\n\nВыберите направление:",
-        reply_markup=build_course_keyboard(),
+        reply_markup=build_course_keyboard(user_id),
     )
     active_panels[user_id] = sent_message.message_id
 
@@ -1403,13 +1790,17 @@ async def show_course_panel(message: Message) -> None:
     await replace_panel(
         message,
         text=f"{COURSE_TEXT}\n\nВыберите направление:",
-        reply_markup=build_course_keyboard(),
+        reply_markup=build_course_keyboard(user_id),
     )
 
 
 async def show_progress_panel(message: Message) -> None:
     user_id = message.from_user.id if message.from_user else message.chat.id
-    await replace_panel(message, text=build_progress_text(user_id))
+    await replace_panel(
+        message,
+        text=build_progress_text(user_id),
+        reply_markup=build_progress_keyboard(user_id),
+    )
 
 
 async def show_payment_panel(message: Message) -> None:
@@ -1468,6 +1859,22 @@ async def send_lesson_attachment(message: Message, track_key: str, lesson_number
 dp = Dispatcher()
 
 
+@dp.message(Command("myid"))
+async def myid_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
+    user_id = message.from_user.id if message.from_user else message.chat.id
+    await message.answer(f"Твой Telegram ID: <code>{user_id}</code>")
+
+
+@dp.message(Command("admin"))
+async def admin_help_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
+    if not await ensure_admin(message):
+        return
+
+    await message.answer(build_admin_help_text())
+
+
 @dp.message(Command("stats"))
 async def admin_stats_handler(message: Message) -> None:
     sync_aiogram_user(message.from_user)
@@ -1475,6 +1882,33 @@ async def admin_stats_handler(message: Message) -> None:
         return
 
     await message.answer(build_admin_stats_text())
+
+
+@dp.message(Command("payments"))
+async def admin_payments_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
+    if not await ensure_admin(message):
+        return
+
+    await message.answer(build_payments_text())
+
+
+@dp.message(Command("today"))
+async def admin_today_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
+    if not await ensure_admin(message):
+        return
+
+    await message.answer(build_today_access_text())
+
+
+@dp.message(Command("promos"))
+async def admin_promos_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
+    if not await ensure_admin(message):
+        return
+
+    await message.answer(build_promos_text())
 
 
 @dp.message(Command("students"))
@@ -1493,12 +1927,15 @@ async def admin_user_handler(message: Message) -> None:
         return
 
     parts = (message.text or "").split(maxsplit=1)
-    target_user_id = parse_target_user_id(parts[1]) if len(parts) > 1 else None
+    target_user_id = resolve_target_user_id(parts[1]) if len(parts) > 1 else None
     if target_user_id is None:
-        await message.answer("Используй: <code>/user 123456789</code>")
+        await message.answer("Используй: <code>/user 123456789</code> или <code>/user @username</code>")
         return
 
-    await message.answer(build_admin_user_text(target_user_id))
+    await message.answer(
+        build_admin_user_text(target_user_id),
+        reply_markup=build_admin_user_keyboard(target_user_id),
+    )
 
 
 @dp.message(Command("grant"))
@@ -1508,9 +1945,9 @@ async def admin_grant_handler(message: Message) -> None:
         return
 
     parts = (message.text or "").split(maxsplit=1)
-    target_user_id = parse_target_user_id(parts[1]) if len(parts) > 1 else None
+    target_user_id = resolve_target_user_id(parts[1]) if len(parts) > 1 else None
     if target_user_id is None:
-        await message.answer("Используй: <code>/grant 123456789</code>")
+        await message.answer("Используй: <code>/grant 123456789</code> или <code>/grant @username</code>")
         return
 
     opened_now = grant_course_access_manual(target_user_id, source="admin")
@@ -1526,9 +1963,9 @@ async def admin_revoke_handler(message: Message) -> None:
         return
 
     parts = (message.text or "").split(maxsplit=1)
-    target_user_id = parse_target_user_id(parts[1]) if len(parts) > 1 else None
+    target_user_id = resolve_target_user_id(parts[1]) if len(parts) > 1 else None
     if target_user_id is None:
-        await message.answer("Используй: <code>/revoke 123456789</code>")
+        await message.answer("Используй: <code>/revoke 123456789</code> или <code>/revoke @username</code>")
         return
 
     closed_now = revoke_course_access(target_user_id)
@@ -1564,7 +2001,7 @@ async def course_menu_handler(callback: CallbackQuery) -> None:
 
     await callback.message.edit_text(
         f"{COURSE_TEXT}\n\nВыберите направление:",
-        reply_markup=build_course_keyboard(),
+        reply_markup=build_course_keyboard(user_id),
     )
 
 
@@ -1596,7 +2033,7 @@ async def inline_course_handler(callback: CallbackQuery) -> None:
 
     await callback.message.edit_text(
         f"{COURSE_TEXT}\n\nВыберите направление:",
-        reply_markup=build_course_keyboard(),
+        reply_markup=build_course_keyboard(user_id),
     )
 
 
@@ -1606,7 +2043,7 @@ async def inline_progress_handler(callback: CallbackQuery) -> None:
     await callback.answer()
     await callback.message.edit_text(
         build_progress_text(callback.from_user.id),
-        reply_markup=None,
+        reply_markup=build_progress_keyboard(callback.from_user.id),
     )
 
 
@@ -1711,7 +2148,7 @@ async def track_handler(callback: CallbackQuery) -> None:
 
     await callback.message.edit_text(
         build_track_text(track_key),
-        reply_markup=build_lessons_keyboard(track_key),
+        reply_markup=build_lessons_keyboard(callback.from_user.id, track_key),
     )
 
 
@@ -1734,10 +2171,68 @@ async def lesson_handler(callback: CallbackQuery) -> None:
 
     register_lesson_open(callback.from_user.id, track_key, lesson_number_int)
     await callback.message.edit_text(
-        build_lesson_text(track_key, lesson_number_int),
-        reply_markup=build_lesson_keyboard(track_key),
+        build_lesson_text(callback.from_user.id, track_key, lesson_number_int),
+        reply_markup=build_lesson_keyboard(callback.from_user.id, track_key, lesson_number_int),
     )
     await send_lesson_attachment(callback.message, track_key, lesson_number_int)
+
+
+@dp.callback_query(F.data == "lessondone:noop")
+async def lesson_done_noop_handler(callback: CallbackQuery) -> None:
+    sync_aiogram_user(callback.from_user)
+    await callback.answer("Урок уже отмечен")
+
+
+@dp.callback_query(F.data.startswith("lessondone:"))
+async def lesson_done_handler(callback: CallbackQuery) -> None:
+    sync_aiogram_user(callback.from_user)
+    await callback.answer()
+
+    _, track_key, lesson_number = callback.data.split(":")
+    lesson_number_int = int(lesson_number)
+    if not user_has_course_access(callback.from_user.id):
+        await callback.message.edit_text(
+            build_locked_course_text(),
+            reply_markup=build_locked_course_keyboard(),
+        )
+        return
+
+    mark_lesson_completed(callback.from_user.id, track_key, lesson_number_int)
+    await callback.message.edit_text(
+        build_lesson_text(callback.from_user.id, track_key, lesson_number_int),
+        reply_markup=build_lesson_keyboard(callback.from_user.id, track_key, lesson_number_int),
+    )
+
+
+@dp.callback_query(F.data.startswith("admin:"))
+async def admin_callback_handler(callback: CallbackQuery) -> None:
+    sync_aiogram_user(callback.from_user)
+    if not is_admin_user(callback.from_user.id):
+        await callback.answer()
+        return
+
+    _, action, user_id_raw = callback.data.split(":")
+    target_user_id = parse_target_user_id(user_id_raw)
+    if target_user_id is None:
+        await callback.answer("Пользователь не найден", show_alert=True)
+        return
+
+    if action == "grant":
+        grant_course_access_manual(target_user_id, source="admin")
+        await callback.answer("Доступ открыт")
+    elif action == "revoke":
+        revoke_course_access(target_user_id)
+        await callback.answer("Доступ закрыт")
+    elif action == "user":
+        await callback.answer()
+    else:
+        await callback.answer()
+        return
+
+    await callback.message.edit_text(
+        build_admin_user_text(target_user_id),
+        reply_markup=build_admin_user_keyboard(target_user_id),
+    )
 
 
 @dp.pre_checkout_query()
@@ -1823,7 +2318,13 @@ async def fallback_handler(message: Message) -> None:
 
 
 async def configure_bot_for_chat(bot: Bot) -> None:
-    await bot.delete_my_commands()
+    await bot.delete_my_commands(scope=BotCommandScopeDefault())
+
+    for admin_id in ADMIN_IDS:
+        await bot.set_my_commands(
+            build_admin_bot_commands(),
+            scope=BotCommandScopeChat(chat_id=admin_id),
+        )
 
     if mini_app_launch_ready():
         await bot.set_chat_menu_button(

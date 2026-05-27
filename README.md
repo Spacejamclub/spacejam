@@ -40,10 +40,13 @@ ADMIN_IDS=123456789,987654321
 Команды администратора:
 
 - `/stats`
+- `/payments`
 - `/students`
-- `/user 123456789`
-- `/grant 123456789`
-- `/revoke 123456789`
+- `/today`
+- `/promos`
+- `/user 123456789` или `/user @username`
+- `/grant 123456789` или `/grant @username`
+- `/revoke 123456789` или `/revoke @username`
 
 ## Контент курса
 
