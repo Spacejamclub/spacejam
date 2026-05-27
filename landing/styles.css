@@ -74,9 +74,11 @@ h3 {
 }
 
 h1 {
-  max-width: 620px;
+  max-width: 700px;
   font-size: clamp(42px, 8vw, 78px);
-  line-height: 0.92;
+  line-height: 1.01;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
 }
 
 h2 {
@@ -307,6 +309,10 @@ h3 {
     grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
     align-items: center;
     padding: 28px;
+  }
+
+  h1 {
+    max-width: 760px;
   }
 
   .info-grid {

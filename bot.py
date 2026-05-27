@@ -160,7 +160,7 @@ HELP_TEXT = """
 
 Если вам нужна помощь:
 - нажмите нужный раздел в меню,
-- вернитесь в начало командой /start,
+- вернитесь в начало командой /start или /reset,
 - напишите администратору: @your_support
 """.strip()
 
@@ -1168,6 +1168,7 @@ def build_default_bot_commands() -> list[BotCommand]:
 
 def build_admin_bot_commands() -> list[BotCommand]:
     return [
+        BotCommand(command="reset", description="Сбросить интерфейс"),
         BotCommand(command="stats", description="Общая статистика"),
         BotCommand(command="payments", description="Последние оплаты"),
         BotCommand(command="students", description="Список учеников"),
@@ -1836,7 +1837,7 @@ async def handle_unknown(message: Message) -> None:
     await replace_panel(
         message,
         text=(
-            "Я пока понимаю кнопки меню и команду /start. "
+            "Я пока понимаю кнопки меню и команды /start и /reset. "
             "Выберите один из разделов ниже."
         ),
     )
@@ -1972,6 +1973,13 @@ async def admin_revoke_handler(message: Message) -> None:
 @dp.message(CommandStart())
 async def start_handler(message: Message) -> None:
     sync_aiogram_user(message.from_user)
+    await send_welcome(message)
+
+
+@dp.message(Command("reset"))
+async def reset_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
+    await hide_user_menu_message(message)
     await send_welcome(message)
 
 
