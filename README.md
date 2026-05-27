@@ -31,6 +31,20 @@ python3 -m venv .venv
 
 Токен и ссылка на стартовую картинку лежат в `.env`.
 
+Для админ-команд можно указать:
+
+```bash
+ADMIN_IDS=123456789,987654321
+```
+
+Команды администратора:
+
+- `/stats`
+- `/students`
+- `/user 123456789`
+- `/grant 123456789`
+- `/revoke 123456789`
+
 ## Контент курса
 
 Структура уроков вынесена в:
@@ -67,6 +81,7 @@ python3 -m venv .venv
 ```bash
 RUN_BOT=1
 RUN_WEB=1
+ADMIN_IDS=
 MINI_APP_HOST=127.0.0.1
 MINI_APP_PORT=8080
 WEB_HOST=127.0.0.1
@@ -107,7 +122,7 @@ CRYPTO_ACCEPTED_ASSETS=USDT,TON,BTC
 - для Telegram Stars используйте `PAYMENT_CURRENCY=XTR`, тогда `PAYMENT_PROVIDER_TOKEN` можно оставить пустым.
 - `PAYMENT_PROVIDER_TOKEN` выдается через `@BotFather` после подключения платежного провайдера.
 - для цифровых товаров внутри Telegram основной способ оплаты должен быть `XTR`. Карта и крипта обычно используются как внешние сценарии оплаты.
-- если пользователь отправит в чат промокод из `PROMO_CODE`, бот откроет доступ к курсу бесплатно.
+- промокод активируется через карточку `PROMO` внутри Mini App.
 
 ## Cloudflare Tunnel
 

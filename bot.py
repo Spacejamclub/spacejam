@@ -14,7 +14,7 @@ from aiohttp import ClientSession, web
 from aiogram import Bot, Dispatcher, F
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.filters import CommandStart
+from aiogram.filters import Command, CommandStart
 from aiogram.types import (
     CallbackQuery,
     FSInputFile,
@@ -27,6 +27,7 @@ from aiogram.types import (
     MenuButtonWebApp,
     PreCheckoutQuery,
     ReplyKeyboardMarkup,
+    User as TelegramUser,
     WebAppInfo,
 )
 from dotenv import load_dotenv
@@ -62,6 +63,7 @@ CARD_DESCRIPTION = os.getenv("CARD_DESCRIPTION", PAYMENT_DESCRIPTION).strip()
 CARD_PAYLOAD = os.getenv("CARD_PAYLOAD", "spacejam-card").strip()
 CARD_CURRENCY = os.getenv("CARD_CURRENCY", "RUB").strip().upper()
 PROMO_CODE = os.getenv("PROMO_CODE", "space").strip()
+ADMIN_IDS_RAW = os.getenv("ADMIN_IDS", "").strip()
 CRYPTO_PAYMENT_URL = os.getenv("CRYPTO_PAYMENT_URL", "").strip()
 CRYPTO_PAY_API_TOKEN = os.getenv("CRYPTO_PAY_API_TOKEN", "").strip()
 CRYPTO_PAY_API_BASE = os.getenv("CRYPTO_PAY_API_BASE", "https://pay.crypt.bot/api").strip().rstrip("/")
@@ -73,6 +75,19 @@ keyboard_hosts: dict[int, int] = {}
 
 if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN is not set in .env")
+
+
+def parse_admin_ids(raw_value: str) -> set[int]:
+    admin_ids: set[int] = set()
+    for part in raw_value.split(","):
+        value = part.strip()
+        if not value:
+            continue
+        try:
+            admin_ids.add(int(value))
+        except ValueError:
+            logging.warning("Skipping invalid ADMIN_IDS entry: %r", value)
+    return admin_ids
 
 
 def read_bool_env(name: str, default: bool) -> bool:
@@ -105,6 +120,7 @@ RUN_BOT = read_bool_env("RUN_BOT", True)
 RUN_WEB = read_bool_env("RUN_WEB", True)
 WEB_HOST = os.getenv("WEB_HOST", "0.0.0.0" if os.getenv("PORT") else MINI_APP_HOST).strip()
 WEB_PORT = int(os.getenv("PORT", os.getenv("WEB_PORT", str(MINI_APP_PORT))).strip())
+ADMIN_IDS = parse_admin_ids(ADMIN_IDS_RAW)
 
 COURSE_TEXT = """
 <b>Курс по сноуборду</b>
@@ -378,11 +394,65 @@ def ensure_user_record(state: dict[str, Any], user_id: int) -> dict[str, Any]:
         {
             "has_access": False,
             "payments": [],
+            "promo_activations": [],
             "opened_lessons": [],
             "completed_lessons": [],
             "activated_at": None,
             "last_lesson": None,
+            "updated_at": None,
+            "profile": {
+                "id": user_id,
+                "first_name": "",
+                "last_name": "",
+                "username": "",
+            },
         },
+    )
+
+
+def touch_user_record(record: dict[str, Any]) -> None:
+    record["updated_at"] = int(time.time())
+
+
+def sync_user_profile(
+    user_id: int,
+    *,
+    first_name: str = "",
+    last_name: str = "",
+    username: str = "",
+) -> None:
+    state = load_course_state()
+    record = ensure_user_record(state, user_id)
+    profile = record.setdefault("profile", {"id": user_id})
+    profile["id"] = user_id
+    profile["first_name"] = first_name.strip()
+    profile["last_name"] = last_name.strip()
+    profile["username"] = username.strip().lstrip("@")
+    touch_user_record(record)
+    save_course_state(state)
+
+
+def sync_aiogram_user(user: Optional[TelegramUser]) -> None:
+    if not user:
+        return
+
+    sync_user_profile(
+        user.id,
+        first_name=user.first_name or "",
+        last_name=user.last_name or "",
+        username=user.username or "",
+    )
+
+
+def sync_webapp_user(user_data: Optional[dict[str, Any]]) -> None:
+    if not user_data or not user_data.get("id"):
+        return
+
+    sync_user_profile(
+        int(user_data["id"]),
+        first_name=str(user_data.get("first_name", "")),
+        last_name=str(user_data.get("last_name", "")),
+        username=str(user_data.get("username", "")),
     )
 
 
@@ -432,6 +502,7 @@ def grant_course_access(
             }
         )
 
+    touch_user_record(record)
     save_course_state(state)
 
 
@@ -455,8 +526,32 @@ def grant_course_access_via_promo(user_id: int, promo_code: str) -> bool:
             }
         )
 
+    touch_user_record(record)
     save_course_state(state)
     return not had_access
+
+
+def grant_course_access_manual(user_id: int, *, source: str = "admin") -> bool:
+    state = load_course_state()
+    record = ensure_user_record(state, user_id)
+    had_access = bool(record.get("has_access"))
+    record["has_access"] = True
+    if not record.get("activated_at"):
+        record["activated_at"] = int(time.time())
+    record["manual_access_source"] = source
+    touch_user_record(record)
+    save_course_state(state)
+    return not had_access
+
+
+def revoke_course_access(user_id: int) -> bool:
+    state = load_course_state()
+    record = ensure_user_record(state, user_id)
+    had_access = bool(record.get("has_access"))
+    record["has_access"] = False
+    touch_user_record(record)
+    save_course_state(state)
+    return had_access
 
 
 def register_lesson_open(user_id: int, track_key: str, lesson_number: int) -> None:
@@ -473,6 +568,7 @@ def register_lesson_open(user_id: int, track_key: str, lesson_number: int) -> No
     record["completed_lessons"] = sorted(completed_lessons, key=lesson_sort_key)
     record["last_lesson"] = lesson_code
 
+    touch_user_record(record)
     save_course_state(state)
 
 
@@ -481,6 +577,131 @@ def format_timestamp(timestamp: Optional[int]) -> str:
         return "—"
 
     return time.strftime("%d.%m.%Y %H:%M", time.localtime(timestamp))
+
+
+def is_admin_user(user_id: int) -> bool:
+    return user_id in ADMIN_IDS
+
+
+def parse_target_user_id(raw_value: str) -> Optional[int]:
+    value = raw_value.strip()
+    if not value:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
+def get_all_user_records() -> list[tuple[int, dict[str, Any]]]:
+    state = load_course_state()
+    users = state.get("users", {})
+    result: list[tuple[int, dict[str, Any]]] = []
+    for user_key, record in users.items():
+        try:
+            user_id = int(user_key)
+        except ValueError:
+            continue
+        if isinstance(record, dict):
+            result.append((user_id, record))
+    return result
+
+
+def build_user_label(user_id: int, record: Optional[dict[str, Any]] = None) -> str:
+    profile = (record or {}).get("profile", {})
+    first_name = str(profile.get("first_name", "")).strip()
+    last_name = str(profile.get("last_name", "")).strip()
+    username = str(profile.get("username", "")).strip()
+
+    full_name = " ".join(part for part in [first_name, last_name] if part).strip()
+    if username and full_name:
+        return f"{html.escape(full_name)} · @{html.escape(username)} · <code>{user_id}</code>"
+    if username:
+        return f"@{html.escape(username)} · <code>{user_id}</code>"
+    if full_name:
+        return f"{html.escape(full_name)} · <code>{user_id}</code>"
+    return f"<code>{user_id}</code>"
+
+
+def build_admin_stats_text() -> str:
+    users = get_all_user_records()
+    total_users = len(users)
+    with_access = sum(1 for _, record in users if record.get("has_access"))
+    paid_users = sum(1 for _, record in users if record.get("payments"))
+    promo_users = sum(1 for _, record in users if record.get("promo_activations"))
+    opened_lessons = sum(len(record.get("opened_lessons", [])) for _, record in users)
+    completed_lessons = sum(len(record.get("completed_lessons", [])) for _, record in users)
+
+    return (
+        "<b>Админка · Статистика</b>\n\n"
+        f"<b>Пользователей:</b> {total_users}\n"
+        f"<b>С доступом:</b> {with_access}\n"
+        f"<b>Оплатили:</b> {paid_users}\n"
+        f"<b>Активировали промокод:</b> {promo_users}\n"
+        f"<b>Открытий уроков:</b> {opened_lessons}\n"
+        f"<b>Пройденных уроков:</b> {completed_lessons}"
+    )
+
+
+def build_students_text(limit: int = 20) -> str:
+    users = get_all_user_records()
+    if not users:
+        return "<b>Админка · Ученики</b>\n\nПока никого нет."
+
+    sorted_users = sorted(
+        users,
+        key=lambda item: (
+            item[1].get("updated_at") or item[1].get("activated_at") or 0,
+            item[0],
+        ),
+        reverse=True,
+    )
+
+    lines = ["<b>Админка · Ученики</b>", ""]
+    for index, (user_id, record) in enumerate(sorted_users[:limit], start=1):
+        access_mark = "доступ" if record.get("has_access") else "без доступа"
+        progress = len(record.get("completed_lessons", []))
+        lines.append(
+            f"{index}. {build_user_label(user_id, record)} — {access_mark}, уроков: {progress}"
+        )
+
+    if len(sorted_users) > limit:
+        lines.extend(["", f"Показаны первые {limit} из {len(sorted_users)}"])
+
+    return "\n".join(lines)
+
+
+def build_admin_user_text(user_id: int) -> str:
+    record = get_user_record(user_id)
+    if not record:
+        return f"<b>Пользователь</b>\n\n<code>{user_id}</code>\n\nВ локальной базе ещё нет данных."
+
+    payments = record.get("payments", [])
+    promos = record.get("promo_activations", [])
+    completed_count = len(record.get("completed_lessons", []))
+    opened_count = len(record.get("opened_lessons", []))
+    last_lesson = record.get("last_lesson") or "—"
+
+    return (
+        "<b>Админка · Карточка ученика</b>\n\n"
+        f"<b>Пользователь:</b> {build_user_label(user_id, record)}\n"
+        f"<b>Доступ:</b> {'открыт' if record.get('has_access') else 'закрыт'}\n"
+        f"<b>Активирован:</b> {format_timestamp(record.get('activated_at'))}\n"
+        f"<b>Оплат:</b> {len(payments)}\n"
+        f"<b>Промокодов:</b> {len(promos)}\n"
+        f"<b>Открыто уроков:</b> {opened_count}\n"
+        f"<b>Пройдено уроков:</b> {completed_count}\n"
+        f"<b>Последний урок:</b> {html.escape(str(last_lesson))}"
+    )
+
+
+async def ensure_admin(message: Message) -> bool:
+    user_id = message.from_user.id if message.from_user else message.chat.id
+    if is_admin_user(user_id):
+        return True
+
+    await message.answer("Эта команда доступна только администратору.")
+    return False
 
 
 def build_locked_course_text() -> str:
@@ -983,6 +1204,8 @@ async def miniapp_promo_activate_handler(request: web.Request) -> web.Response:
     if not user_id:
         raise web.HTTPBadRequest(text=json.dumps({"ok": False, "error": "Не удалось определить пользователя Telegram"}))
 
+    sync_webapp_user(user)
+
     if promo_code.casefold() != PROMO_CODE.casefold():
         raise web.HTTPBadRequest(text=json.dumps({"ok": False, "error": "Промокод не подошёл"}))
 
@@ -1245,19 +1468,91 @@ async def send_lesson_attachment(message: Message, track_key: str, lesson_number
 dp = Dispatcher()
 
 
+@dp.message(Command("stats"))
+async def admin_stats_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
+    if not await ensure_admin(message):
+        return
+
+    await message.answer(build_admin_stats_text())
+
+
+@dp.message(Command("students"))
+async def admin_students_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
+    if not await ensure_admin(message):
+        return
+
+    await message.answer(build_students_text())
+
+
+@dp.message(Command("user"))
+async def admin_user_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
+    if not await ensure_admin(message):
+        return
+
+    parts = (message.text or "").split(maxsplit=1)
+    target_user_id = parse_target_user_id(parts[1]) if len(parts) > 1 else None
+    if target_user_id is None:
+        await message.answer("Используй: <code>/user 123456789</code>")
+        return
+
+    await message.answer(build_admin_user_text(target_user_id))
+
+
+@dp.message(Command("grant"))
+async def admin_grant_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
+    if not await ensure_admin(message):
+        return
+
+    parts = (message.text or "").split(maxsplit=1)
+    target_user_id = parse_target_user_id(parts[1]) if len(parts) > 1 else None
+    if target_user_id is None:
+        await message.answer("Используй: <code>/grant 123456789</code>")
+        return
+
+    opened_now = grant_course_access_manual(target_user_id, source="admin")
+    await message.answer(
+        f"Доступ для <code>{target_user_id}</code> {'открыт' if opened_now else 'уже был открыт'}."
+    )
+
+
+@dp.message(Command("revoke"))
+async def admin_revoke_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
+    if not await ensure_admin(message):
+        return
+
+    parts = (message.text or "").split(maxsplit=1)
+    target_user_id = parse_target_user_id(parts[1]) if len(parts) > 1 else None
+    if target_user_id is None:
+        await message.answer("Используй: <code>/revoke 123456789</code>")
+        return
+
+    closed_now = revoke_course_access(target_user_id)
+    await message.answer(
+        f"Доступ для <code>{target_user_id}</code> {'закрыт' if closed_now else 'уже был закрыт'}."
+    )
+
+
 @dp.message(CommandStart())
 async def start_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
     await send_welcome(message)
 
 
 @dp.message(F.text == "КУРС")
 async def course_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
     await hide_user_menu_message(message)
     await show_course_panel(message)
 
 
 @dp.callback_query(F.data == "course:menu")
 async def course_menu_handler(callback: CallbackQuery) -> None:
+    sync_aiogram_user(callback.from_user)
     await callback.answer()
     user_id = callback.from_user.id
     if not user_has_course_access(user_id):
@@ -1275,6 +1570,7 @@ async def course_menu_handler(callback: CallbackQuery) -> None:
 
 @dp.callback_query(F.data == "main:menu")
 async def inline_main_menu_handler(callback: CallbackQuery) -> None:
+    sync_aiogram_user(callback.from_user)
     await callback.answer()
     if active_panels.get(callback.message.chat.id) == callback.message.message_id:
         active_panels.pop(callback.message.chat.id, None)
@@ -1288,6 +1584,7 @@ async def inline_main_menu_handler(callback: CallbackQuery) -> None:
 
 @dp.callback_query(F.data == "main:course")
 async def inline_course_handler(callback: CallbackQuery) -> None:
+    sync_aiogram_user(callback.from_user)
     await callback.answer()
     user_id = callback.from_user.id
     if not user_has_course_access(user_id):
@@ -1305,6 +1602,7 @@ async def inline_course_handler(callback: CallbackQuery) -> None:
 
 @dp.callback_query(F.data == "main:progress")
 async def inline_progress_handler(callback: CallbackQuery) -> None:
+    sync_aiogram_user(callback.from_user)
     await callback.answer()
     await callback.message.edit_text(
         build_progress_text(callback.from_user.id),
@@ -1314,6 +1612,7 @@ async def inline_progress_handler(callback: CallbackQuery) -> None:
 
 @dp.callback_query(F.data == "main:payment")
 async def inline_payment_handler(callback: CallbackQuery) -> None:
+    sync_aiogram_user(callback.from_user)
     await callback.answer()
     await callback.message.edit_text(
         build_payment_text(),
@@ -1323,6 +1622,7 @@ async def inline_payment_handler(callback: CallbackQuery) -> None:
 
 @dp.callback_query(F.data == "payment:invoice")
 async def payment_invoice_handler(callback: CallbackQuery) -> None:
+    sync_aiogram_user(callback.from_user)
     if not payment_ready():
         await callback.answer("Сначала настрой платежные переменные в .env", show_alert=True)
         return
@@ -1336,11 +1636,13 @@ async def payment_invoice_handler(callback: CallbackQuery) -> None:
 
 @dp.callback_query(F.data == "payment:unavailable")
 async def payment_unavailable_handler(callback: CallbackQuery) -> None:
+    sync_aiogram_user(callback.from_user)
     await callback.answer("Для Mini App нужен публичный HTTPS URL в MINI_APP_URL", show_alert=True)
 
 
 @dp.callback_query(F.data == "payment:link")
 async def payment_link_handler(callback: CallbackQuery) -> None:
+    sync_aiogram_user(callback.from_user)
     if PAYMENT_LINK_URL:
         await callback.answer()
         await callback.message.answer(
@@ -1373,6 +1675,7 @@ async def payment_link_handler(callback: CallbackQuery) -> None:
 
 @dp.callback_query(F.data == "main:help")
 async def inline_help_handler(callback: CallbackQuery) -> None:
+    sync_aiogram_user(callback.from_user)
     await callback.answer()
     await callback.message.edit_text(
         HELP_TEXT,
@@ -1382,6 +1685,7 @@ async def inline_help_handler(callback: CallbackQuery) -> None:
 
 @dp.callback_query(F.data == "main:faq")
 async def inline_faq_handler(callback: CallbackQuery) -> None:
+    sync_aiogram_user(callback.from_user)
     await callback.answer()
     await callback.message.edit_text(
         FAQ_TEXT,
@@ -1391,6 +1695,7 @@ async def inline_faq_handler(callback: CallbackQuery) -> None:
 
 @dp.callback_query(F.data.startswith("track:"))
 async def track_handler(callback: CallbackQuery) -> None:
+    sync_aiogram_user(callback.from_user)
     await callback.answer()
     track_key = callback.data.split(":", 1)[1]
     if not user_has_course_access(callback.from_user.id):
@@ -1412,6 +1717,7 @@ async def track_handler(callback: CallbackQuery) -> None:
 
 @dp.callback_query(F.data.startswith("lesson:"))
 async def lesson_handler(callback: CallbackQuery) -> None:
+    sync_aiogram_user(callback.from_user)
     await callback.answer()
     _, track_key, lesson_number = callback.data.split(":")
     lesson_number_int = int(lesson_number)
@@ -1455,6 +1761,7 @@ async def pre_checkout_query_handler(pre_checkout_query: PreCheckoutQuery) -> No
 
 @dp.message(F.successful_payment)
 async def successful_payment_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
     payment = message.successful_payment
     user_id = message.from_user.id if message.from_user else message.chat.id
     grant_course_access(
@@ -1483,30 +1790,35 @@ async def successful_payment_handler(message: Message) -> None:
 
 @dp.message(F.text == "МОЙ ПРОГРЕСС")
 async def progress_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
     await hide_user_menu_message(message)
     await show_progress_panel(message)
 
 
 @dp.message(F.text == "ОПЛАТА")
 async def payment_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
     await hide_user_menu_message(message)
     await show_payment_panel(message)
 
 
 @dp.message(F.text == "ПОМОЩЬ")
 async def help_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
     await hide_user_menu_message(message)
     await show_help_panel(message)
 
 
 @dp.message(F.text == "ЧАСТО ЗАДАВАЕМЫЕ ВОПРОСЫ")
 async def faq_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
     await hide_user_menu_message(message)
     await show_faq_panel(message)
 
 
 @dp.message()
 async def fallback_handler(message: Message) -> None:
+    sync_aiogram_user(message.from_user)
     await handle_unknown(message)
 
 
