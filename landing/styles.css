@@ -377,6 +377,22 @@ h3 {
   border-radius: var(--radius-xl);
 }
 
+@media (max-width: 819px) {
+  html,
+  body {
+    background: #020202;
+  }
+
+  .hero,
+  .info-card,
+  .video-section,
+  .step-card,
+  .cta,
+  .faq-item {
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+  }
+}
+
 @media (min-width: 820px) {
   body {
     padding: 24px 24px 56px;
