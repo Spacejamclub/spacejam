@@ -153,9 +153,9 @@ CRYPTO_ACCEPTED_ASSETS=USDT,TON,BTC
 
 Схема запуска:
 
-- локально проект работает как `RUN_BOT=1` и `RUN_WEB=1`,
-- на Render поднимается только Mini App и его API как `RUN_BOT=0` и `RUN_WEB=1`,
-- polling бота остаётся локально, поэтому конфликта `getUpdates` не будет.
+- на Render поднимается и бот, и Mini App как `RUN_BOT=1` и `RUN_WEB=1`,
+- локально для безопасной проверки Mini App лучше использовать `RUN_BOT=0` и `RUN_WEB=1`,
+- polling бота должен работать только в одном месте, иначе Telegram вернёт конфликт `getUpdates`.
 
 Порядок действий:
 
@@ -172,7 +172,7 @@ Start Command: python bot.py
 
 ```bash
 BOT_TOKEN=...
-RUN_BOT=0
+RUN_BOT=1
 RUN_WEB=1
 MINI_APP_DEV_MODE=0
 PAYMENT_CURRENCY=XTR
@@ -191,6 +191,12 @@ CRYPTO_PAY_API_TOKEN=
 7. Затем в Render добавить custom domain `pay.spacejam.by`.
 8. В DNS домена создать запись, которую подскажет Render, и нажать Verify.
 9. После этого обновить `MINI_APP_URL` на `https://pay.spacejam.by/miniapp`.
+
+Если Render уже держит боевого бота, локально запускай проект так, чтобы не было второго polling-процесса:
+
+```bash
+RUN_BOT=0 RUN_WEB=1 python bot.py
+```
 
 Если захотите, следующим шагом можно добавить:
 

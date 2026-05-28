@@ -78,6 +78,7 @@ CRYPTO_INVOICE_FIAT = os.getenv("CRYPTO_INVOICE_FIAT", "USD").strip().upper()
 CRYPTO_INVOICE_AMOUNT = os.getenv("CRYPTO_INVOICE_AMOUNT", "24.99").strip()
 CRYPTO_ACCEPTED_ASSETS = os.getenv("CRYPTO_ACCEPTED_ASSETS", "USDT,TON,BTC").strip()
 STATIC_ASSET_CACHE_CONTROL = "public, max-age=604800, stale-while-revalidate=86400"
+DEFAULT_WELCOME_IMAGE_PATH = BASE_DIR / "assets" / "welcome.jpg"
 active_panels: dict[int, int] = {}
 keyboard_hosts: dict[int, int] = {}
 
@@ -1787,6 +1788,15 @@ async def replace_panel(
 
 async def create_keyboard_host(message: Message) -> None:
     keyboard = build_main_keyboard()
+
+    if DEFAULT_WELCOME_IMAGE_PATH.exists():
+        sent_message = await message.answer_photo(
+            photo=FSInputFile(DEFAULT_WELCOME_IMAGE_PATH),
+            caption=WELCOME_TEXT,
+            reply_markup=keyboard,
+        )
+        keyboard_hosts[message.chat.id] = sent_message.message_id
+        return
 
     if WELCOME_IMAGE_PATH and os.path.exists(WELCOME_IMAGE_PATH):
         sent_message = await message.answer_photo(

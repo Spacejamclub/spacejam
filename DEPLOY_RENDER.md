@@ -17,10 +17,10 @@
 
 Смысл схемы:
 
-- локально ты продолжаешь запускать бота как `RUN_BOT=1` и `RUN_WEB=1`
-- на Render запускается только Mini App и его API как `RUN_BOT=0` и `RUN_WEB=1`
+- на Render держим и бота, и Mini App в одном сервисе как `RUN_BOT=1` и `RUN_WEB=1`
+- локально для проверки Mini App лучше запускать `RUN_BOT=0` и `RUN_WEB=1`
 
-Это важно, потому что polling бота и Render web service не должны одновременно бороться за `getUpdates`.
+Это важно, потому что polling бота должен работать только в одном месте. Если бот уже крутится на Render, локальный запуск с `RUN_BOT=1` нужно остановить, иначе два процесса будут бороться за `getUpdates`.
 
 ## Что сделать руками
 
@@ -80,7 +80,7 @@ Render должен либо сам подхватить [render.yaml](/Users/sp
 ```bash
 PYTHON_VERSION=3.11.11
 BOT_TOKEN=...
-RUN_BOT=0
+RUN_BOT=1
 RUN_WEB=1
 MINI_APP_DEV_MODE=0
 MINI_APP_URL=https://pay.spacejam.by/miniapp
@@ -92,6 +92,12 @@ PAYMENT_PAYLOAD=spacejam-course
 ```
 
 Остальные переменные платежей по карте и крипте можешь пока оставить пустыми или заполнить позже.
+
+Если после деплоя нужно открыть проект локально без конфликта с боевым ботом, используй:
+
+```bash
+RUN_BOT=0 RUN_WEB=1 python bot.py
+```
 
 ### 5. Дождаться первого деплоя
 
@@ -174,14 +180,17 @@ cd /Users/space_plug/Desktop/SPACE_JAM
 
 ## Частые ошибки
 
-### Render поднялся, но Mini App не открывается
+### Render поднялся, но бот не отвечает
 
 Проверь, что:
 
-- `RUN_BOT=0`
+- `RUN_BOT=1`
 - `RUN_WEB=1`
+- `BOT_TOKEN` вставлен без префикса `BOT_TOKEN=`
 - `MINI_APP_URL=https://pay.spacejam.by/miniapp`
 - сервис слушает `PORT`, который даёт Render
+
+И отдельно проверь, что локальный бот на ноутбуке остановлен, если тот же токен уже работает на Render.
 
 ### Кнопка `ОПЛАТА` в боте не открывает Mini App
 
