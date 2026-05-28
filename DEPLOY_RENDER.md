@@ -67,6 +67,9 @@ Render должен либо сам подхватить [render.yaml](/Users/sp
 - Runtime: `Python`
 - Build Command: `pip install -r requirements.txt`
 - Start Command: `python bot.py`
+- Plan: `Starter ($7/month)`
+
+В проекте в [render.yaml](/Users/space_plug/Desktop/SPACE_JAM/render.yaml) уже выставлен `plan: starter`, чтобы сервис не засыпал как free-инстанс.
 
 ### 4. Заполнить Environment Variables в Render
 

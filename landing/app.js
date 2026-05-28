@@ -6,7 +6,7 @@ for (const video of videos) {
   video.loop = true;
   video.playsInline = true;
   video.setAttribute("webkit-playsinline", "");
-  video.preload = "auto";
+  video.preload = "metadata";
 }
 
 const tryPlay = async (video) => {
@@ -40,7 +40,6 @@ const observer = new IntersectionObserver(
 
 for (const video of videos) {
   observer.observe(video);
-  void tryPlay(video);
 }
 
 document.addEventListener("visibilitychange", () => {

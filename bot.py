@@ -77,6 +77,7 @@ CRYPTO_PAY_API_BASE = os.getenv("CRYPTO_PAY_API_BASE", "https://pay.crypt.bot/ap
 CRYPTO_INVOICE_FIAT = os.getenv("CRYPTO_INVOICE_FIAT", "USD").strip().upper()
 CRYPTO_INVOICE_AMOUNT = os.getenv("CRYPTO_INVOICE_AMOUNT", "24.99").strip()
 CRYPTO_ACCEPTED_ASSETS = os.getenv("CRYPTO_ACCEPTED_ASSETS", "USDT,TON,BTC").strip()
+STATIC_ASSET_CACHE_CONTROL = "public, max-age=604800, stale-while-revalidate=86400"
 active_panels: dict[int, int] = {}
 keyboard_hosts: dict[int, int] = {}
 
@@ -1439,13 +1440,26 @@ def build_miniapp_config() -> dict:
     }
 
 
-def build_landing_video_block() -> str:
+def build_versioned_asset_url(route_path: str, file_path: Path) -> str:
+    if not file_path.exists():
+        return route_path
+    return f"{route_path}?v={int(file_path.stat().st_mtime)}"
+
+
+def build_static_file_response(path: Path) -> web.FileResponse:
+    response = web.FileResponse(path)
+    response.headers["Cache-Control"] = STATIC_ASSET_CACHE_CONTROL
+    return response
+
+
+def build_landing_video_block(hero_poster_url: str) -> str:
     local_video_path = LANDING_DIR / "intro-video.MP4"
     if local_video_path.exists():
+        local_video_url = build_versioned_asset_url("/landing/intro-video.MP4", local_video_path)
         return (
             '<div class="video-frame video-frame-portrait">'
-            '<video class="autoplay-video" autoplay muted loop playsinline preload="auto" poster="/landing/hero.jpg" disablepictureinpicture>'
-            '<source src="/landing/intro-video.MP4" type="video/mp4" />'
+            f'<video class="autoplay-video" autoplay muted loop playsinline preload="metadata" poster="{hero_poster_url}" disablepictureinpicture>'
+            f'<source src="{local_video_url}" type="video/mp4" />'
             "Ваш браузер не поддерживает видео."
             "</video>"
             "</div>"
@@ -1481,13 +1495,20 @@ def build_landing_video_block() -> str:
 
 def render_landing_html() -> str:
     template = (LANDING_DIR / "index.html").read_text(encoding="utf-8")
-    hero_image_url = "/landing/hero.jpg" if (BASE_DIR / "assets" / "welcome.jpg").exists() else ""
+    hero_image_path = BASE_DIR / "assets" / "welcome.jpg"
+    hero_image_url = build_versioned_asset_url("/landing/hero.jpg", hero_image_path) if hero_image_path.exists() else ""
     bot_url = f"https://t.me/{BOT_USERNAME}" if BOT_USERNAME else MINI_APP_URL
     replacements = {
         "{{BOT_URL}}": html.escape(bot_url, quote=True),
         "{{MINIAPP_URL}}": html.escape(MINI_APP_URL, quote=True),
         "{{HERO_IMAGE_URL}}": html.escape(hero_image_url, quote=True),
-        "{{VIDEO_BLOCK}}": build_landing_video_block(),
+        "{{LANDING_STYLES_URL}}": html.escape(
+            build_versioned_asset_url("/landing/styles.css", LANDING_DIR / "styles.css"), quote=True
+        ),
+        "{{LANDING_SCRIPT_URL}}": html.escape(
+            build_versioned_asset_url("/landing/app.js", LANDING_DIR / "app.js"), quote=True
+        ),
+        "{{VIDEO_BLOCK}}": build_landing_video_block(html.escape(hero_image_url, quote=True)),
     }
 
     rendered = template
@@ -1505,27 +1526,19 @@ async def landing_page_handler(_: web.Request) -> web.Response:
 
 
 async def landing_styles_handler(_: web.Request) -> web.FileResponse:
-    response = web.FileResponse(LANDING_DIR / "styles.css")
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    return response
+    return build_static_file_response(LANDING_DIR / "styles.css")
 
 
 async def landing_script_handler(_: web.Request) -> web.FileResponse:
-    response = web.FileResponse(LANDING_DIR / "app.js")
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    return response
+    return build_static_file_response(LANDING_DIR / "app.js")
 
 
 async def landing_hero_handler(_: web.Request) -> web.FileResponse:
-    response = web.FileResponse(BASE_DIR / "assets" / "welcome.jpg")
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    return response
+    return build_static_file_response(BASE_DIR / "assets" / "welcome.jpg")
 
 
 async def landing_video_handler(_: web.Request) -> web.FileResponse:
-    response = web.FileResponse(LANDING_DIR / "intro-video.MP4")
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    return response
+    return build_static_file_response(LANDING_DIR / "intro-video.MP4")
 
 
 async def miniapp_page_handler(_: web.Request) -> web.FileResponse:
@@ -1535,15 +1548,11 @@ async def miniapp_page_handler(_: web.Request) -> web.FileResponse:
 
 
 async def miniapp_styles_handler(_: web.Request) -> web.FileResponse:
-    response = web.FileResponse(MINIAPP_DIR / "styles.css")
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    return response
+    return build_static_file_response(MINIAPP_DIR / "styles.css")
 
 
 async def miniapp_script_handler(_: web.Request) -> web.FileResponse:
-    response = web.FileResponse(MINIAPP_DIR / "app.js")
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    return response
+    return build_static_file_response(MINIAPP_DIR / "app.js")
 
 
 async def healthz_handler(_: web.Request) -> web.Response:

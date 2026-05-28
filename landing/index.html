@@ -14,7 +14,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/landing/styles.css?v=2" />
+    <link rel="preload" as="image" href="{{HERO_IMAGE_URL}}" />
+    <link rel="stylesheet" href="{{LANDING_STYLES_URL}}" />
   </head>
   <body>
     <main class="page">
@@ -41,7 +42,15 @@
         </div>
         <div class="hero-visual">
           <div class="hero-image-wrap">
-            <img src="{{HERO_IMAGE_URL}}" alt="SPACEJAM snowboarding" />
+            <img
+              src="{{HERO_IMAGE_URL}}"
+              alt="SPACEJAM snowboarding"
+              width="1050"
+              height="1000"
+              loading="eager"
+              fetchpriority="high"
+              decoding="async"
+            />
           </div>
         </div>
       </section>
@@ -184,6 +193,6 @@
         </div>
       </section>
     </main>
-    <script src="/landing/app.js?v=1" defer></script>
+    <script src="{{LANDING_SCRIPT_URL}}" defer></script>
   </body>
 </html>
