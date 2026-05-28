@@ -52,8 +52,6 @@ MINI_APP_HOST = os.getenv("MINI_APP_HOST", "127.0.0.1").strip()
 MINI_APP_PORT = int(os.getenv("MINI_APP_PORT", "8080").strip())
 MINI_APP_URL = os.getenv("MINI_APP_URL", f"http://{MINI_APP_HOST}:{MINI_APP_PORT}/miniapp").strip()
 BOT_USERNAME = os.getenv("BOT_USERNAME", "SPACE_JAM_C_BOT").strip().lstrip("@")
-LANDING_VIDEO_URL = os.getenv("LANDING_VIDEO_URL", "").strip()
-LANDING_VIDEO_EMBED_URL = os.getenv("LANDING_VIDEO_EMBED_URL", "").strip()
 PAYMENT_PROVIDER_TOKEN = os.getenv("PAYMENT_PROVIDER_TOKEN", "").strip()
 PAYMENT_LINK_URL = os.getenv("PAYMENT_LINK_URL", "").strip()
 CARD_PAYMENT_URL = os.getenv("CARD_PAYMENT_URL", PAYMENT_LINK_URL).strip()
@@ -1453,47 +1451,6 @@ def build_static_file_response(path: Path) -> web.FileResponse:
     return response
 
 
-def build_landing_video_block(hero_poster_url: str) -> str:
-    local_video_path = LANDING_DIR / "intro-video.MP4"
-    if local_video_path.exists():
-        local_video_url = build_versioned_asset_url("/landing/intro-video.MP4", local_video_path)
-        return (
-            '<div class="video-frame video-frame-portrait">'
-            f'<video class="autoplay-video" autoplay muted loop playsinline preload="metadata" poster="{hero_poster_url}" disablepictureinpicture>'
-            f'<source src="{local_video_url}" type="video/mp4" />'
-            "Ваш браузер не поддерживает видео."
-            "</video>"
-            "</div>"
-        )
-
-    if LANDING_VIDEO_EMBED_URL:
-        safe_url = html.escape(LANDING_VIDEO_EMBED_URL, quote=True)
-        return (
-            '<div class="video-frame">'
-            f'<iframe src="{safe_url}" title="SPACEJAM intro" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>'
-            "</div>"
-        )
-
-    if LANDING_VIDEO_URL:
-        safe_url = html.escape(LANDING_VIDEO_URL, quote=True)
-        return (
-            '<div class="video-card video-card-link">'
-            '<p class="video-label">VIDEO</p>'
-            "<h3>Ознакомительное видео</h3>"
-            "<p>Открой короткое видео и почувствуй, как устроен курс до оплаты.</p>"
-            f'<a class="landing-button landing-button-white" href="{safe_url}" target="_blank" rel="noopener noreferrer">Смотреть видео</a>'
-            "</div>"
-        )
-
-    return (
-        '<div class="video-card">'
-        '<p class="video-label">VIDEO</p>'
-        "<h3>Ознакомительное видео</h3>"
-        "<p>Блок уже готов. Как только у нас будет ссылка или embed, видео появится здесь без переделки лендинга.</p>"
-        "</div>"
-    )
-
-
 def render_landing_html() -> str:
     template = (LANDING_DIR / "index.html").read_text(encoding="utf-8")
     hero_image_path = BASE_DIR / "assets" / "welcome.jpg"
@@ -1506,10 +1463,6 @@ def render_landing_html() -> str:
         "{{LANDING_STYLES_URL}}": html.escape(
             build_versioned_asset_url("/landing/styles.css", LANDING_DIR / "styles.css"), quote=True
         ),
-        "{{LANDING_SCRIPT_URL}}": html.escape(
-            build_versioned_asset_url("/landing/app.js", LANDING_DIR / "app.js"), quote=True
-        ),
-        "{{VIDEO_BLOCK}}": build_landing_video_block(html.escape(hero_image_url, quote=True)),
     }
 
     rendered = template
@@ -1530,16 +1483,8 @@ async def landing_styles_handler(_: web.Request) -> web.FileResponse:
     return build_static_file_response(LANDING_DIR / "styles.css")
 
 
-async def landing_script_handler(_: web.Request) -> web.FileResponse:
-    return build_static_file_response(LANDING_DIR / "app.js")
-
-
 async def landing_hero_handler(_: web.Request) -> web.FileResponse:
     return build_static_file_response(BASE_DIR / "assets" / "welcome.jpg")
-
-
-async def landing_video_handler(_: web.Request) -> web.FileResponse:
-    return build_static_file_response(LANDING_DIR / "intro-video.MP4")
 
 
 async def miniapp_page_handler(_: web.Request) -> web.FileResponse:
@@ -1669,9 +1614,7 @@ def build_web_application(bot: Bot) -> web.Application:
     app.router.add_get("/", landing_page_handler)
     app.router.add_get("/landing", landing_page_handler)
     app.router.add_get("/landing/styles.css", landing_styles_handler)
-    app.router.add_get("/landing/app.js", landing_script_handler)
     app.router.add_get("/landing/hero.jpg", landing_hero_handler)
-    app.router.add_get("/landing/intro-video.MP4", landing_video_handler)
     app.router.add_get("/healthz", healthz_handler)
     app.router.add_get("/miniapp", miniapp_page_handler)
     app.router.add_get("/miniapp/styles.css", miniapp_styles_handler)
