@@ -297,6 +297,7 @@ h3 {
 
 .video-shell {
   width: 100%;
+  contain: layout paint;
 }
 
 .video-card,
@@ -349,6 +350,7 @@ h3 {
   max-width: 420px;
   aspect-ratio: 9 / 16;
   margin-left: auto;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
 }
 
 .video-frame iframe {
@@ -366,6 +368,8 @@ h3 {
   object-fit: cover;
   background: #000000;
   pointer-events: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .steps {

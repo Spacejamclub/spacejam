@@ -5,6 +5,8 @@ for (const video of videos) {
   video.defaultMuted = true;
   video.loop = true;
   video.playsInline = true;
+  video.setAttribute("webkit-playsinline", "");
+  video.preload = "auto";
 }
 
 const tryPlay = async (video) => {
@@ -23,7 +25,7 @@ const observer = new IntersectionObserver(
         continue;
       }
 
-      if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+      if (entry.isIntersecting && entry.intersectionRatio >= 0.3) {
         void tryPlay(video);
       } else {
         video.pause();
@@ -31,7 +33,8 @@ const observer = new IntersectionObserver(
     }
   },
   {
-    threshold: [0, 0.25, 0.55, 0.8],
+    rootMargin: "140px 0px 140px 0px",
+    threshold: [0, 0.12, 0.3, 0.6, 0.85],
   }
 );
 
