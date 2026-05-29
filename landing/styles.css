@@ -440,10 +440,6 @@ h3 {
     padding: 34px;
   }
 
-  .story-media {
-    justify-content: flex-end;
-  }
-
   .story-image-wrap {
     min-height: 280px;
     max-width: 380px;
