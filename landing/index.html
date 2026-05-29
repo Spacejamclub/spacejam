@@ -6,7 +6,7 @@
     <title>SPACEJAM — курс по сноуборду</title>
     <meta
       name="description"
-      content="SPACEJAM — Telegram-курс по сноуборду: структура, прогресс, доступ внутри бота и оплата через Mini App."
+      content="SPACEJAM — сноуборд-бот внутри Telegram: знакомство с программой, обучение по шагам, доступ к курсу и зимний розыгрыш сноуборда для покупателей."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -21,23 +21,25 @@
     <main class="page">
       <section class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">SPACEJAM</p>
-          <h1>Курс по<br />сноуборду<br /><span>внутри Telegram</span></h1>
+          <p class="eyebrow">SPACEJAM BOT</p>
+          <h1>Сноуборд-бот,<br />который ведёт<br /><span>к реальному прогрессу</span></h1>
           <p class="lead">
-            Спокойный вход в курс, структура по направлениям, прогресс по урокам и оплата уже
-            внутри Mini App, когда человек готов зайти глубже.
+            Первый и единственный в стране бот по сноуборду, который собирает обучение, структуру
+            курса, прогресс и доступ к материалам прямо внутри Telegram. Человеку не нужно
+            разбираться самому: бот показывает, с чего начать, куда двигаться дальше и почему это
+            даст результат на склоне.
           </p>
           <div class="hero-actions">
             <a class="landing-button landing-button-white" href="{{BOT_URL}}" target="_blank" rel="noopener noreferrer">
               Открыть бота
             </a>
-            <a class="landing-button landing-button-dark" href="#program">Посмотреть программу</a>
+            <a class="landing-button landing-button-dark" href="#inside">Что ждёт внутри</a>
           </div>
           <div class="hero-pills">
-            <span>Telegram-формат</span>
-            <span>Mini App оплата</span>
-            <span>Прогресс по урокам</span>
+            <span>Единственный в стране</span>
             <span>4 направления</span>
+            <span>Доступ 24/7</span>
+            <span>Зимний розыгрыш</span>
           </div>
         </div>
         <div class="hero-visual">
@@ -55,25 +57,61 @@
         </div>
       </section>
 
-      <section class="info-grid" id="program">
+      <section class="story-section" id="story">
+        <div class="story-media">
+          <div class="story-image-wrap">
+            <img
+              src="{{HERO_IMAGE_URL}}"
+              alt="Команда SPACEJAM"
+              width="1050"
+              height="1000"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+        </div>
+        <article class="story-card">
+          <p class="card-label">ЗНАКОМСТВО</p>
+          <h2>Кто построил этого бота и почему</h2>
+          <p>
+            SPACEJAM bot собрала команда школы, которая давно живёт в сноуборде не только в
+            онлайне, но и на склоне. Мы видели одну и ту же проблему: люди вдохновляются, смотрят
+            разрозненные ролики, но быстро теряются без системы и перестают прогрессировать.
+          </p>
+          <p>
+            Поэтому появился бот, который помогает учиться спокойно и последовательно: он ведёт
+            человека по шагам, показывает логику обучения и хранит весь важный материал в одном
+            месте. Это не просто чат с кнопками, а понятный вход в методику SPACEJAM.
+          </p>
+          <div class="story-actions">
+            <a class="landing-button landing-button-white" href="#inside">Посмотреть наполнение</a>
+            <a class="landing-button landing-button-dark" href="#contest">Про зимний конкурс</a>
+          </div>
+        </article>
+      </section>
+
+      <section class="info-grid" id="inside">
         <article class="info-card">
-          <p class="card-label">FORMAT</p>
-          <h2>Как это устроено</h2>
+          <p class="card-label">ВНУТРИ БОТА</p>
+          <h2>Что ждёт человека после входа</h2>
           <ul>
-            <li>Человек заходит в бота и знакомится с курсом внутри Telegram.</li>
-            <li>Когда готов, переходит в оплату через Mini App.</li>
-            <li>После доступа продолжает обучение и видит свой прогресс.</li>
+            <li>Понятное знакомство с курсом без лишнего шума и сложных переходов.</li>
+            <li>Маршрут по направлениям: основы, карвинг, флэт фристайл и парк.</li>
+            <li>Уроки, к которым можно возвращаться в своём темпе с телефона в любой момент.</li>
+            <li>Прогресс по материалам, чтобы человек видел движение, а не хаос.</li>
+            <li>Удобный вход в оплату через Mini App, когда решение уже созрело.</li>
           </ul>
         </article>
 
         <article class="info-card">
-          <p class="card-label">INSIDE</p>
-          <h2>Что внутри курса</h2>
+          <p class="card-label">ПОЧЕМУ МЫ</p>
+          <h2>Почему именно наш бот запоминается</h2>
           <ul>
-            <li>Основы</li>
-            <li>Карвинг</li>
-            <li>Флэт фристайл</li>
-            <li>Парк</li>
+            <li>Это единственный в стране сноуборд-бот с такой логикой обучения внутри Telegram.</li>
+            <li>За ним стоит живая школа и практика, а не просто подборка чужих видео.</li>
+            <li>Бот не перегружает человека, а даёт ясный путь от интереса до результата.</li>
+            <li>Контент собран так, чтобы помогать и новичкам, и тем, кто хочет расти дальше.</li>
+            <li>Формат удобен зимой, в поездке, на подъёмнике и между выездами на склон.</li>
           </ul>
         </article>
       </section>
@@ -81,18 +119,31 @@
       <section class="steps">
         <article class="step-card">
           <span>01</span>
-          <h3>Открыть бота</h3>
-          <p>Весь курс и дальнейший путь живут внутри Telegram.</p>
+          <h3>Понять свой уровень</h3>
+          <p>Человек быстро считывает формат и находит направление, которое нужно именно ему.</p>
         </article>
         <article class="step-card">
           <span>02</span>
-          <h3>Посмотреть оплату</h3>
-          <p>Оплата открывается в Mini App, когда человек уже понимает, куда идёт.</p>
+          <h3>Получить систему</h3>
+          <p>Вместо случайных роликов бот даёт последовательность, которая помогает расти быстрее.</p>
         </article>
         <article class="step-card">
           <span>03</span>
-          <h3>Зайти в обучение</h3>
-          <p>После доступа открываются направления, уроки и прогресс по курсу.</p>
+          <h3>Кататься с опорой</h3>
+          <p>Все материалы остаются под рукой, чтобы можно было пересматривать и закреплять на склоне.</p>
+        </article>
+      </section>
+
+      <section class="contest-section" id="contest">
+        <article class="contest-card">
+          <p class="card-label">ЗИМА 2026</p>
+          <h2>Маленький бонус для больших райдерских планов</h2>
+          <p>
+            Этой зимой среди всех покупателей бота пройдёт розыгрыш: случайным образом выберем
+            одного победителя, который получит сноуборд. Это ещё один приятный повод зайти в
+            обучение сейчас, а в сезон встретить не только прогресс, но и шанс уехать с новым
+            бордом.
+          </p>
         </article>
       </section>
 
@@ -101,8 +152,8 @@
           <p class="card-label">FAQ</p>
           <h2>Часто задаваемые вопросы</h2>
           <p>
-            Здесь собрали те же ключевые ответы, которые уже есть в боте, чтобы человек мог
-            спокойно почитать их ещё до входа в курс.
+            Здесь собрали ключевые ответы заранее, чтобы человек почувствовал опору ещё до входа в
+            бот и понимал, почему этот формат действительно работает.
           </p>
         </div>
 
@@ -168,15 +219,15 @@
 
       <section class="cta">
         <div>
-          <p class="card-label">READY</p>
-          <h2>Переводим человека в бота, а оплату оставляем внутри Mini App</h2>
+          <p class="card-label">СТАРТ</p>
+          <h2>Зайти в бот сейчас и быть в числе участников зимнего розыгрыша</h2>
         </div>
         <div class="cta-actions">
           <a class="landing-button landing-button-white" href="{{BOT_URL}}" target="_blank" rel="noopener noreferrer">
             Перейти в SPACEJAM bot
           </a>
           <a class="landing-button landing-button-dark" href="{{MINIAPP_URL}}" target="_blank" rel="noopener noreferrer">
-            Открыть Mini App
+            Открыть оплату
           </a>
         </div>
       </section>

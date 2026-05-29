@@ -41,7 +41,9 @@ body {
 .hero,
 .info-card,
 .step-card,
-.cta {
+.cta,
+.story-card,
+.contest-card {
   border: 1px solid var(--line);
   background: rgba(8, 8, 8, 0.92);
   box-shadow: var(--shadow);
@@ -98,7 +100,10 @@ h3 {
 .lead,
 .step-card p,
 .cta p,
-.info-card li {
+.info-card li,
+.story-card p,
+.contest-card p,
+.faq-copy p {
   color: var(--muted);
   font-size: 16px;
   line-height: 1.6;
@@ -201,6 +206,59 @@ h3 {
 }
 
 .hero-image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: grayscale(1) contrast(1.08);
+}
+
+.story-section,
+.contest-section {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.story-card,
+.contest-card {
+  padding: 24px 20px;
+  border-radius: var(--radius-xl);
+}
+
+.story-card h2,
+.contest-card h2 {
+  max-width: 720px;
+}
+
+.story-card p,
+.contest-card p {
+  margin: 16px 0 0;
+  max-width: 760px;
+}
+
+.story-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.story-media {
+  display: flex;
+}
+
+.story-image-wrap {
+  overflow: hidden;
+  width: 100%;
+  min-height: 320px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: #0e0e0e;
+  box-shadow: var(--shadow);
+}
+
+.story-image-wrap img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -319,7 +377,10 @@ h3 {
   .info-card,
   .step-card,
   .cta,
-  .faq-item {
+  .faq-item,
+  .story-card,
+  .contest-card,
+  .story-image-wrap {
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
   }
 }
@@ -341,6 +402,16 @@ h3 {
 
   .info-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .story-section {
+    grid-template-columns: minmax(320px, 0.88fr) minmax(0, 1.12fr);
+    align-items: stretch;
+  }
+
+  .story-card,
+  .contest-card {
+    padding: 28px;
   }
 
   .steps {
