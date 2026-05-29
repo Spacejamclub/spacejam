@@ -1454,12 +1454,19 @@ def build_static_file_response(path: Path) -> web.FileResponse:
 def render_landing_html() -> str:
     template = (LANDING_DIR / "index.html").read_text(encoding="utf-8")
     hero_image_path = BASE_DIR / "assets" / "welcome.jpg"
+    story_image_path = BASE_DIR / "assets" / "story.jpg"
     hero_image_url = build_versioned_asset_url("/landing/hero.jpg", hero_image_path) if hero_image_path.exists() else ""
+    story_image_url = (
+        build_versioned_asset_url("/landing/story.jpg", story_image_path)
+        if story_image_path.exists()
+        else hero_image_url
+    )
     bot_url = f"https://t.me/{BOT_USERNAME}" if BOT_USERNAME else MINI_APP_URL
     replacements = {
         "{{BOT_URL}}": html.escape(bot_url, quote=True),
         "{{MINIAPP_URL}}": html.escape(MINI_APP_URL, quote=True),
         "{{HERO_IMAGE_URL}}": html.escape(hero_image_url, quote=True),
+        "{{STORY_IMAGE_URL}}": html.escape(story_image_url, quote=True),
         "{{LANDING_STYLES_URL}}": html.escape(
             build_versioned_asset_url("/landing/styles.css", LANDING_DIR / "styles.css"), quote=True
         ),
@@ -1485,6 +1492,10 @@ async def landing_styles_handler(_: web.Request) -> web.FileResponse:
 
 async def landing_hero_handler(_: web.Request) -> web.FileResponse:
     return build_static_file_response(BASE_DIR / "assets" / "welcome.jpg")
+
+
+async def landing_story_handler(_: web.Request) -> web.FileResponse:
+    return build_static_file_response(BASE_DIR / "assets" / "story.jpg")
 
 
 async def miniapp_page_handler(_: web.Request) -> web.FileResponse:
@@ -1615,6 +1626,7 @@ def build_web_application(bot: Bot) -> web.Application:
     app.router.add_get("/landing", landing_page_handler)
     app.router.add_get("/landing/styles.css", landing_styles_handler)
     app.router.add_get("/landing/hero.jpg", landing_hero_handler)
+    app.router.add_get("/landing/story.jpg", landing_story_handler)
     app.router.add_get("/healthz", healthz_handler)
     app.router.add_get("/miniapp", miniapp_page_handler)
     app.router.add_get("/miniapp/styles.css", miniapp_styles_handler)
