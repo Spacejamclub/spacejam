@@ -215,8 +215,6 @@ h3 {
 
 .story-section,
 .contest-section {
-  display: grid;
-  gap: 14px;
   margin-top: 16px;
 }
 
@@ -237,6 +235,15 @@ h3 {
   max-width: 760px;
 }
 
+.story-layout {
+  display: grid;
+  gap: 20px;
+}
+
+.story-copy {
+  max-width: 760px;
+}
+
 .story-actions {
   display: flex;
   flex-wrap: wrap;
@@ -246,16 +253,17 @@ h3 {
 
 .story-media {
   display: flex;
+  justify-content: flex-start;
 }
 
 .story-image-wrap {
   overflow: hidden;
   width: 100%;
-  min-height: 320px;
+  min-height: 240px;
   border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
+  border-radius: calc(var(--radius-xl) - 10px);
   background: #0e0e0e;
-  box-shadow: var(--shadow);
+  max-width: 360px;
 }
 
 .story-image-wrap img {
@@ -379,8 +387,7 @@ h3 {
   .cta,
   .faq-item,
   .story-card,
-  .contest-card,
-  .story-image-wrap {
+  .contest-card {
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
   }
 }
@@ -404,14 +411,24 @@ h3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .story-section {
-    grid-template-columns: minmax(320px, 0.88fr) minmax(0, 1.12fr);
-    align-items: stretch;
+  .story-layout {
+    grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.75fr);
+    align-items: center;
+    gap: 24px;
   }
 
   .story-card,
   .contest-card {
     padding: 28px;
+  }
+
+  .story-media {
+    justify-content: flex-end;
+  }
+
+  .story-image-wrap {
+    min-height: 300px;
+    max-width: 420px;
   }
 
   .steps {
