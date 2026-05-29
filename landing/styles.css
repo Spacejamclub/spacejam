@@ -244,6 +244,14 @@ h3 {
   max-width: 760px;
 }
 
+.story-copy h2 {
+  max-width: 100%;
+}
+
+.story-copy p {
+  max-width: 100%;
+}
+
 .story-actions {
   display: flex;
   flex-wrap: wrap;
@@ -412,13 +420,15 @@ h3 {
   }
 
   .story-layout {
-    grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.75fr);
-    align-items: center;
-    gap: 24px;
+    grid-template-columns: minmax(280px, 0.82fr) minmax(0, 1.18fr);
+    align-items: start;
+    gap: 36px;
   }
 
   .story-copy {
     order: 2;
+    max-width: none;
+    padding-top: 8px;
   }
 
   .story-media {
@@ -427,7 +437,7 @@ h3 {
 
   .story-card,
   .contest-card {
-    padding: 28px;
+    padding: 34px;
   }
 
   .story-media {
@@ -435,8 +445,8 @@ h3 {
   }
 
   .story-image-wrap {
-    min-height: 300px;
-    max-width: 420px;
+    min-height: 280px;
+    max-width: 380px;
   }
 
   .steps {
