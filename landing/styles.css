@@ -421,14 +421,13 @@ h3 {
 
   .story-layout {
     grid-template-columns: minmax(280px, 0.82fr) minmax(0, 1.18fr);
-    align-items: start;
+    align-items: center;
     gap: 36px;
   }
 
   .story-copy {
     order: 2;
     max-width: none;
-    padding-top: 8px;
   }
 
   .story-media {
