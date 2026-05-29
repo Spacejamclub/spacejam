@@ -417,6 +417,14 @@ h3 {
     gap: 24px;
   }
 
+  .story-copy {
+    order: 2;
+  }
+
+  .story-media {
+    order: 1;
+  }
+
   .story-card,
   .contest-card {
     padding: 28px;
