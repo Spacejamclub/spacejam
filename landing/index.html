@@ -19,7 +19,7 @@
   </head>
   <body>
     <main class="page" id="top">
-      <header class="topbar">
+      <header class="topbar" data-topbar>
         <a class="brand-mark" href="#top" aria-label="SPACEJAM home">
           <span class="brand-mark-text">SPACEJAM</span>
           <span class="brand-mark-dot"></span>
@@ -327,5 +327,31 @@
         </div>
       </section>
     </main>
+
+    <script>
+      (() => {
+        const topbar = document.querySelector("[data-topbar]");
+        if (!topbar) return;
+
+        const maxScroll = 180;
+        let ticking = false;
+
+        const updateTopbar = () => {
+          const progress = Math.min(window.scrollY / maxScroll, 1);
+          topbar.style.setProperty("--topbar-progress", progress.toFixed(3));
+          ticking = false;
+        };
+
+        const requestUpdate = () => {
+          if (ticking) return;
+          ticking = true;
+          window.requestAnimationFrame(updateTopbar);
+        };
+
+        updateTopbar();
+        window.addEventListener("scroll", requestUpdate, { passive: true });
+        window.addEventListener("resize", requestUpdate);
+      })();
+    </script>
   </body>
 </html>
