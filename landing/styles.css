@@ -62,11 +62,11 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  width: calc(100% - 64px - (var(--topbar-progress) * 30px));
+  width: calc(100% - 64px - (var(--topbar-progress) * 42px));
   margin: 4px auto 22px;
   padding:
-    calc(12px - (var(--topbar-progress) * 1.5px))
-    calc(18px - (var(--topbar-progress) * 2px));
+    calc(12px - (var(--topbar-progress) * 2px))
+    calc(18px - (var(--topbar-progress) * 2.5px));
   border-radius: 999px;
   border-color: rgba(255, 255, 255, 0.05);
   background: rgba(10, 10, 10, calc(0.58 + (var(--topbar-progress) * 0.08)));
@@ -76,8 +76,8 @@ body {
     rgba(0, 0, 0, calc(0.1 + (var(--topbar-progress) * 0.04)));
   backdrop-filter: blur(14px);
   transform:
-    translateY(calc(var(--topbar-progress) * -1px))
-    scale(calc(1 - (var(--topbar-progress) * 0.025)));
+    translateY(calc(var(--topbar-progress) * -1.5px))
+    scale(calc(1 - (var(--topbar-progress) * 0.035)));
   transform-origin: top center;
   transition:
     width 220ms ease,
@@ -672,14 +672,14 @@ h3 {
   }
 
   .topbar {
-    width: calc(100% - 52px - (var(--topbar-progress) * 22px));
+    width: calc(100% - 52px - (var(--topbar-progress) * 28px));
     gap: calc(6px - (var(--topbar-progress) * 2px));
     margin: 0 auto 12px;
     padding:
-      calc(9px - (var(--topbar-progress) * 2px))
-      calc(14px - (var(--topbar-progress) * 2px))
-      calc(9px - (var(--topbar-progress) * 2px));
-    border-radius: calc(24px - (var(--topbar-progress) * 6px));
+      calc(9px - (var(--topbar-progress) * 2.5px))
+      calc(14px - (var(--topbar-progress) * 2.5px))
+      calc(9px - (var(--topbar-progress) * 2.5px));
+    border-radius: calc(24px - (var(--topbar-progress) * 8px));
     align-items: stretch;
     flex-direction: column;
   }
