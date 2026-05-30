@@ -18,7 +18,20 @@
     <link rel="stylesheet" href="{{LANDING_STYLES_URL}}" />
   </head>
   <body>
-    <main class="page">
+    <main class="page" id="top">
+      <header class="topbar">
+        <a class="brand-mark" href="#top" aria-label="SPACEJAM home">
+          <span class="brand-mark-text">SPACEJAM</span>
+          <span class="brand-mark-dot"></span>
+        </a>
+        <nav class="topnav" aria-label="Основная навигация">
+          <a href="#story">О боте</a>
+          <a href="#inside">Наполнение</a>
+          <a href="#tracks">Направления</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+      </header>
+
       <section class="hero">
         <div class="hero-copy">
           <p class="eyebrow">SPACEJAM BOT</p>
@@ -35,6 +48,11 @@
             </a>
             <a class="landing-button landing-button-dark" href="#inside">Что ждёт внутри</a>
           </div>
+          <div class="hero-pills" aria-label="Ключевые преимущества">
+            <span>4 направления</span>
+            <span>Telegram + Mini App</span>
+            <span>Зимний розыгрыш борда</span>
+          </div>
         </div>
         <div class="hero-visual">
           <div class="hero-image-wrap">
@@ -49,6 +67,24 @@
             />
           </div>
         </div>
+      </section>
+
+      <section class="proof-strip" aria-label="Ключевые факты о продукте">
+        <article class="proof-card">
+          <span>01</span>
+          <h3>Бот, а не просто витрина</h3>
+          <p>Прогресс, структура, уроки и доступ к оплате собраны в одном маршруте внутри Telegram.</p>
+        </article>
+        <article class="proof-card">
+          <span>02</span>
+          <h3>Опора на живую школу</h3>
+          <p>Контент вырос из реальной практики райдеров и тренеров, а не из случайной подборки видео.</p>
+        </article>
+        <article class="proof-card">
+          <span>03</span>
+          <h3>Понятный вход в сезон</h3>
+          <p>Человек быстрее понимает, с чего начать сейчас и что закреплять уже на ближайших выездах.</p>
+        </article>
       </section>
 
       <section class="story-section" id="story">
@@ -134,6 +170,40 @@
           <h3>Кататься с опорой</h3>
           <p>Все материалы остаются под рукой, чтобы можно было пересматривать и закреплять на склоне.</p>
         </article>
+      </section>
+
+      <section class="tracks-section" id="tracks">
+        <div class="section-heading">
+          <p class="card-label">НАПРАВЛЕНИЯ</p>
+          <h2>Какой путь внутри курса можно выбрать</h2>
+          <p>
+            Внутри SPACEJAM человек не тонет в общей ленте. Он выбирает цель и получает понятный
+            фокус под свой стиль катания.
+          </p>
+        </div>
+
+        <div class="tracks-grid">
+          <article class="track-card">
+            <p class="track-kicker">01 / START</p>
+            <h3>Основы</h3>
+            <p>Для тех, кто хочет уверенно встать на доску, убрать хаос в базе и построить стабильную технику.</p>
+          </article>
+          <article class="track-card">
+            <p class="track-kicker">02 / EDGE</p>
+            <h3>Карвинг</h3>
+            <p>Для райдеров, которые хотят чище ехать на канте, лучше чувствовать дугу и контролировать скорость.</p>
+          </article>
+          <article class="track-card">
+            <p class="track-kicker">03 / STYLE</p>
+            <h3>Флэт фристайл</h3>
+            <p>Для тех, кто хочет добавить свободу, контроль корпуса и трюковую пластичность на плоском рельефе.</p>
+          </article>
+          <article class="track-card">
+            <p class="track-kicker">04 / AIR</p>
+            <h3>Парк</h3>
+            <p>Для тех, кто нацелен развиваться в прыжках и парковых элементах с более понятной логикой прогрессии.</p>
+          </article>
+        </div>
       </section>
 
       <section class="contest-section" id="contest">
