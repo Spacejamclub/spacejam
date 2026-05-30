@@ -313,6 +313,11 @@ h3 {
   gap: 20px;
 }
 
+.contest-layout {
+  display: grid;
+  gap: 22px;
+}
+
 .video-layout {
   display: grid;
   gap: 22px;
@@ -326,11 +331,23 @@ h3 {
   max-width: 620px;
 }
 
+.contest-copy {
+  max-width: 760px;
+}
+
 .story-copy h2 {
   max-width: 100%;
 }
 
+.contest-copy h2 {
+  max-width: 100%;
+}
+
 .story-copy p {
+  max-width: 100%;
+}
+
+.contest-copy p {
   max-width: 100%;
 }
 
@@ -351,6 +368,11 @@ h3 {
   align-items: stretch;
 }
 
+.contest-media {
+  display: flex;
+  align-items: stretch;
+}
+
 .story-image-wrap {
   overflow: hidden;
   width: 100%;
@@ -367,6 +389,24 @@ h3 {
   object-fit: cover;
   display: block;
   filter: grayscale(1) contrast(1.08);
+}
+
+.contest-image-wrap {
+  overflow: hidden;
+  width: 100%;
+  min-height: 320px;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius-xl) - 10px);
+  background: #0e0e0e;
+}
+
+.contest-image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  filter: grayscale(1) contrast(1.06);
 }
 
 .video-actions {
@@ -450,6 +490,11 @@ h3 {
 
 .tracks-section {
   padding: 6px 0 0;
+}
+
+.contest-section {
+  margin-top: 28px;
+  margin-bottom: 28px;
 }
 
 .section-heading {
@@ -652,6 +697,12 @@ h3 {
     gap: 36px;
   }
 
+  .contest-layout {
+    grid-template-columns: minmax(0, 0.98fr) minmax(280px, 0.82fr);
+    align-items: center;
+    gap: 36px;
+  }
+
   .video-layout {
     grid-template-columns: minmax(280px, 0.88fr) minmax(0, 1.12fr);
     align-items: center;
@@ -664,6 +715,10 @@ h3 {
   }
 
   .video-copy {
+    max-width: none;
+  }
+
+  .contest-copy {
     max-width: none;
   }
 
@@ -681,6 +736,11 @@ h3 {
   .story-image-wrap {
     min-height: 280px;
     max-width: 380px;
+  }
+
+  .contest-image-wrap {
+    min-height: 380px;
+    max-width: 420px;
   }
 
   .video-frame-wrap {
