@@ -260,26 +260,6 @@ h3 {
   color: #ffffff;
 }
 
-.hero-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 24px;
-}
-
-.hero-pills span {
-  display: inline-flex;
-  align-items: center;
-  min-height: 36px;
-  padding: 0 14px;
-  border: 1px solid rgba(204, 231, 255, 0.18);
-  border-radius: 999px;
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 700;
-  background: rgba(255, 255, 255, 0.03);
-}
-
 .hero-visual {
   display: flex;
   align-items: stretch;
