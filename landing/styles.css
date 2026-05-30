@@ -294,7 +294,6 @@ h3 {
 .story-section,
 .contest-section,
 .tracks-section,
-.contrast-section,
 .audience-section,
 .video-section {
   margin-top: 16px;
@@ -304,7 +303,6 @@ h3 {
 .contest-card,
 .proof-card,
 .track-card,
-.contrast-card,
 .audience-card,
 .video-card {
   padding: 24px 20px;
@@ -446,7 +444,6 @@ h3 {
 
 .proof-strip,
 .tracks-grid,
-.contrast-grid,
 .audience-grid {
   display: grid;
   gap: 14px;
@@ -455,7 +452,6 @@ h3 {
 
 .proof-card,
 .track-card,
-.contrast-card,
 .audience-card {
   position: relative;
   overflow: hidden;
@@ -463,7 +459,6 @@ h3 {
 
 .proof-card::before,
 .track-card::before,
-.contrast-card::before,
 .audience-card::before {
   content: "";
   position: absolute;
@@ -510,45 +505,11 @@ h3 {
   font-size: 30px;
 }
 
-.contrast-card {
-  border: 1px solid var(--line);
-  background: rgba(8, 8, 8, 0.92);
-  box-shadow: var(--shadow);
-}
-
-.contrast-card-muted::before {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 42%);
-}
-
-.contrast-card-accent {
-  border-color: rgba(204, 231, 255, 0.18);
-  background:
-    linear-gradient(180deg, rgba(204, 231, 255, 0.08), rgba(204, 231, 255, 0.02)),
-    rgba(8, 8, 8, 0.94);
-}
-
-.contrast-label {
-  margin: 0 0 16px;
-  color: rgba(204, 231, 255, 0.82);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-.contrast-card h3,
 .audience-card h3 {
   font-size: clamp(26px, 3vw, 34px);
   line-height: 1;
 }
 
-.contrast-list {
-  margin: 18px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.contrast-list li,
 .audience-card p {
   position: relative;
   margin: 0;
@@ -558,7 +519,6 @@ h3 {
   line-height: 1.65;
 }
 
-.contrast-list li::before,
 .audience-card p::before {
   content: "";
   position: absolute;
@@ -571,7 +531,6 @@ h3 {
   box-shadow: 0 0 16px rgba(204, 231, 255, 0.28);
 }
 
-.contrast-list li + li,
 .audience-card p + p {
   margin-top: 12px;
 }
@@ -668,7 +627,6 @@ h3 {
 .proof-strip,
 .steps,
 .tracks-grid,
-.contrast-grid,
 .audience-grid {
   grid-template-columns: 1fr;
 }
@@ -718,7 +676,6 @@ h3 {
   .contest-card,
   .proof-card,
   .track-card,
-  .contrast-card,
   .audience-card,
   .topbar {
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
@@ -773,7 +730,6 @@ h3 {
   .contest-card,
   .proof-card,
   .track-card,
-  .contrast-card,
   .audience-card,
   .video-card {
     padding: 34px;
@@ -793,10 +749,6 @@ h3 {
   }
 
   .tracks-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .contrast-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
