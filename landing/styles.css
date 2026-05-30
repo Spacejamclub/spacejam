@@ -347,13 +347,13 @@ h3 {
 
 .contest-label {
   position: absolute;
-  top: 34px;
-  left: 44px;
+  top: 46px;
+  left: 52px;
   margin: 0;
   color: #d64949;
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
