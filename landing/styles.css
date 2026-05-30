@@ -45,7 +45,6 @@ body {
 .cta,
 .story-card,
 .contest-card,
-.proof-card,
 .track-card,
 .topbar {
   border: 1px solid var(--line);
@@ -291,7 +290,6 @@ h3 {
 
 .story-card,
 .contest-card,
-.proof-card,
 .track-card,
 .audience-card,
 .video-card {
@@ -432,7 +430,6 @@ h3 {
   letter-spacing: -0.04em;
 }
 
-.proof-strip,
 .tracks-grid,
 .audience-grid {
   display: grid;
@@ -440,14 +437,12 @@ h3 {
   margin-top: 16px;
 }
 
-.proof-card,
 .track-card,
 .audience-card {
   position: relative;
   overflow: hidden;
 }
 
-.proof-card::before,
 .track-card::before,
 .audience-card::before {
   content: "";
@@ -457,7 +452,6 @@ h3 {
   pointer-events: none;
 }
 
-.proof-card span,
 .track-kicker {
   display: inline-flex;
   margin: 0 0 18px;
@@ -468,12 +462,6 @@ h3 {
   text-transform: uppercase;
 }
 
-.proof-card h3 {
-  font-size: clamp(24px, 3vw, 30px);
-  line-height: 1;
-}
-
-.proof-card p,
 .track-card p,
 .section-heading p {
   margin: 14px 0 0;
@@ -614,7 +602,6 @@ h3 {
   padding-top: 18px;
 }
 
-.proof-strip,
 .steps,
 .tracks-grid,
 .audience-grid {
@@ -698,7 +685,6 @@ h3 {
   .faq-item,
   .story-card,
   .contest-card,
-  .proof-card,
   .track-card,
   .audience-card,
   .topbar {
@@ -752,15 +738,10 @@ h3 {
 
   .story-card,
   .contest-card,
-  .proof-card,
   .track-card,
   .audience-card,
   .video-card {
     padding: 34px;
-  }
-
-  .proof-strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .story-image-wrap {
