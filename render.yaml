@@ -11,7 +11,7 @@ services:
       - key: PYTHON_VERSION
         value: "3.11.11"
       - key: RUN_BOT
-        value: "0"
+        value: "1"
       - key: RUN_WEB
         value: "1"
       - key: MINI_APP_DEV_MODE
