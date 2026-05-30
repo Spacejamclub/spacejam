@@ -443,23 +443,12 @@ h3 {
   overflow: hidden;
 }
 
-.track-card::before,
 .audience-card::before {
   content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(180deg, rgba(204, 231, 255, 0.05), transparent 44%);
   pointer-events: none;
-}
-
-.track-kicker {
-  display: inline-flex;
-  margin: 0 0 18px;
-  color: rgba(204, 231, 255, 0.82);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
 }
 
 .track-card p,
