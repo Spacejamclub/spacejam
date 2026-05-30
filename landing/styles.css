@@ -295,7 +295,8 @@ h3 {
 .contest-section,
 .tracks-section,
 .contrast-section,
-.audience-section {
+.audience-section,
+.video-section {
   margin-top: 16px;
 }
 
@@ -304,18 +305,21 @@ h3 {
 .proof-card,
 .track-card,
 .contrast-card,
-.audience-card {
+.audience-card,
+.video-card {
   padding: 24px 20px;
   border-radius: var(--radius-xl);
 }
 
 .story-card h2,
-.contest-card h2 {
+.contest-card h2,
+.video-card h2 {
   max-width: 720px;
 }
 
 .story-card p,
-.contest-card p {
+.contest-card p,
+.video-card p {
   margin: 16px 0 0;
   max-width: 760px;
 }
@@ -325,8 +329,17 @@ h3 {
   gap: 20px;
 }
 
+.video-layout {
+  display: grid;
+  gap: 22px;
+}
+
 .story-copy {
   max-width: 760px;
+}
+
+.video-copy {
+  max-width: 620px;
 }
 
 .story-copy h2 {
@@ -349,6 +362,11 @@ h3 {
   justify-content: flex-start;
 }
 
+.video-media {
+  display: flex;
+  align-items: stretch;
+}
+
 .story-image-wrap {
   overflow: hidden;
   width: 100%;
@@ -365,6 +383,65 @@ h3 {
   object-fit: cover;
   display: block;
   filter: grayscale(1) contrast(1.08);
+}
+
+.video-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.video-card {
+  border: 1px solid var(--line);
+  background: rgba(8, 8, 8, 0.92);
+  box-shadow: var(--shadow);
+}
+
+.video-frame-wrap {
+  overflow: hidden;
+  width: 100%;
+  min-height: 280px;
+  border: 1px solid rgba(204, 231, 255, 0.14);
+  border-radius: calc(var(--radius-xl) - 10px);
+  background:
+    radial-gradient(circle at top, rgba(204, 231, 255, 0.12), transparent 40%),
+    linear-gradient(180deg, rgba(14, 17, 20, 0.96), rgba(6, 6, 6, 0.98));
+}
+
+.video-frame-wrap iframe {
+  width: 100%;
+  min-height: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  display: block;
+}
+
+.video-frame-wrap-poster {
+  display: flex;
+  align-items: flex-end;
+  padding: 24px;
+}
+
+.video-poster-copy {
+  max-width: 320px;
+}
+
+.video-poster-copy span {
+  display: inline-flex;
+  margin-bottom: 12px;
+  color: rgba(204, 231, 255, 0.8);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.video-poster-copy strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 38px);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
 }
 
 .proof-strip,
@@ -673,8 +750,18 @@ h3 {
     gap: 36px;
   }
 
+  .video-layout {
+    grid-template-columns: minmax(280px, 0.88fr) minmax(0, 1.12fr);
+    align-items: center;
+    gap: 36px;
+  }
+
   .story-copy {
     order: 2;
+    max-width: none;
+  }
+
+  .video-copy {
     max-width: none;
   }
 
@@ -687,7 +774,8 @@ h3 {
   .proof-card,
   .track-card,
   .contrast-card,
-  .audience-card {
+  .audience-card,
+  .video-card {
     padding: 34px;
   }
 
@@ -698,6 +786,10 @@ h3 {
   .story-image-wrap {
     min-height: 280px;
     max-width: 380px;
+  }
+
+  .video-frame-wrap {
+    min-height: 320px;
   }
 
   .tracks-grid {

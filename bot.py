@@ -52,6 +52,8 @@ MINI_APP_HOST = os.getenv("MINI_APP_HOST", "127.0.0.1").strip()
 MINI_APP_PORT = int(os.getenv("MINI_APP_PORT", "8080").strip())
 MINI_APP_URL = os.getenv("MINI_APP_URL", f"http://{MINI_APP_HOST}:{MINI_APP_PORT}/miniapp").strip()
 BOT_USERNAME = os.getenv("BOT_USERNAME", "SPACE_JAM_C_BOT").strip().lstrip("@")
+LANDING_VIDEO_URL = os.getenv("LANDING_VIDEO_URL", "").strip()
+LANDING_VIDEO_EMBED_URL = os.getenv("LANDING_VIDEO_EMBED_URL", "").strip()
 PAYMENT_PROVIDER_TOKEN = os.getenv("PAYMENT_PROVIDER_TOKEN", "").strip()
 PAYMENT_LINK_URL = os.getenv("PAYMENT_LINK_URL", "").strip()
 CARD_PAYMENT_URL = os.getenv("CARD_PAYMENT_URL", PAYMENT_LINK_URL).strip()
@@ -1451,6 +1453,64 @@ def build_static_file_response(path: Path) -> web.FileResponse:
     return response
 
 
+def render_landing_video_section() -> str:
+    if not LANDING_VIDEO_URL and not LANDING_VIDEO_EMBED_URL:
+        return ""
+
+    cta_url = LANDING_VIDEO_URL or LANDING_VIDEO_EMBED_URL
+    cta_html = ""
+    if cta_url:
+        cta_html = (
+            f'<a class="landing-button landing-button-white" href="{html.escape(cta_url, quote=True)}" '
+            'target="_blank" rel="noopener noreferrer">Смотреть тизер</a>'
+        )
+
+    if LANDING_VIDEO_EMBED_URL:
+        media_html = f"""
+          <div class="video-frame-wrap">
+            <iframe
+              src="{html.escape(LANDING_VIDEO_EMBED_URL, quote=True)}"
+              title="SPACEJAM video teaser"
+              loading="lazy"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+            ></iframe>
+          </div>
+        """.strip()
+    else:
+        media_html = """
+          <div class="video-frame-wrap video-frame-wrap-poster">
+            <div class="video-poster-copy">
+              <span>SPACEJAM PREVIEW</span>
+              <strong>Короткое видео о формате, подходе и логике курса.</strong>
+            </div>
+          </div>
+        """.strip()
+
+    actions_html = f'<div class="video-actions">{cta_html}</div>' if cta_html else ""
+    return f"""
+      <section class="video-section" id="video">
+        <article class="video-card">
+          <div class="video-layout">
+            <div class="video-copy">
+              <p class="card-label">ВИДЕО</p>
+              <h2>Быстро показать атмосферу и формат в одном экране</h2>
+              <p>
+                Если хочется дать человеку не только текст, но и живое ощущение школы, сюда можно
+                вывести короткий тизер: как выглядит стиль, подача и настроение SPACEJAM.
+              </p>
+              {actions_html}
+            </div>
+            <div class="video-media">
+              {media_html}
+            </div>
+          </div>
+        </article>
+      </section>
+    """.strip()
+
+
 def render_landing_html() -> str:
     template = (LANDING_DIR / "index.html").read_text(encoding="utf-8")
     hero_image_path = BASE_DIR / "assets" / "welcome.jpg"
@@ -1467,6 +1527,7 @@ def render_landing_html() -> str:
         "{{MINIAPP_URL}}": html.escape(MINI_APP_URL, quote=True),
         "{{HERO_IMAGE_URL}}": html.escape(hero_image_url, quote=True),
         "{{STORY_IMAGE_URL}}": html.escape(story_image_url, quote=True),
+        "{{VIDEO_SECTION}}": render_landing_video_section(),
         "{{LANDING_STYLES_URL}}": html.escape(
             build_versioned_asset_url("/landing/styles.css", LANDING_DIR / "styles.css"), quote=True
         ),
