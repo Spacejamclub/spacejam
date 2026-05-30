@@ -335,6 +335,46 @@ h3 {
   max-width: 680px;
 }
 
+.contest-badge,
+.contest-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.contest-badge {
+  margin-bottom: 18px;
+}
+
+.contest-badge span,
+.contest-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.contest-badge span {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.contest-meta {
+  margin-top: 24px;
+}
+
+.contest-meta span {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  color: rgba(255, 255, 255, 0.62);
+}
+
 .story-copy h2 {
   max-width: 100%;
 }
@@ -415,8 +455,10 @@ h3 {
 .contest-card {
   position: relative;
   overflow: hidden;
+  border-color: rgba(255, 255, 255, 0.12);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.02), transparent 42%),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.06), transparent 28%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.025), transparent 42%),
     rgba(8, 8, 8, 0.94);
 }
 
@@ -427,6 +469,19 @@ h3 {
   border-radius: inherit;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 32%);
   pointer-events: none;
+}
+
+.contest-card::after {
+  content: "";
+  position: absolute;
+  top: 26px;
+  right: 26px;
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08), transparent 72%);
+  pointer-events: none;
+  opacity: 0.9;
 }
 
 .video-actions {
