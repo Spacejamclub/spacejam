@@ -672,10 +672,42 @@ h3 {
   }
 
   .topbar {
-    width: calc(100% - 24px - (var(--topbar-progress) * 10px));
-    border-radius: 28px;
-    align-items: flex-start;
+    width: calc(100% - 28px - (var(--topbar-progress) * 8px));
+    gap: 12px;
+    margin: 2px auto 18px;
+    padding:
+      calc(14px - (var(--topbar-progress) * 1px))
+      calc(18px - (var(--topbar-progress) * 1px))
+      calc(15px - (var(--topbar-progress) * 1px));
+    border-radius: 30px;
+    align-items: stretch;
     flex-direction: column;
+  }
+
+  .brand-mark {
+    justify-content: center;
+    width: 100%;
+    font-size: calc(12.5px - (var(--topbar-progress) * 0.25px));
+    letter-spacing: 0.11em;
+    text-align: center;
+  }
+
+  .topnav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .topnav a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    font-size: calc(11.5px - (var(--topbar-progress) * 0.15px));
+    letter-spacing: 0.03em;
+    text-align: center;
   }
 
   .hero,
