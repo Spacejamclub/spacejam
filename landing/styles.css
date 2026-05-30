@@ -68,13 +68,13 @@ body {
     calc(12px - (var(--topbar-progress) * 1.5px))
     calc(18px - (var(--topbar-progress) * 2px));
   border-radius: 999px;
-  border-color: rgba(255, 255, 255, 0.07);
-  background: rgba(10, 10, 10, calc(0.8 + (var(--topbar-progress) * 0.08)));
+  border-color: rgba(255, 255, 255, 0.05);
+  background: rgba(10, 10, 10, calc(0.58 + (var(--topbar-progress) * 0.08)));
   box-shadow:
-    0 calc(16px - (var(--topbar-progress) * 5px))
-    calc(34px - (var(--topbar-progress) * 10px))
-    rgba(0, 0, 0, calc(0.18 + (var(--topbar-progress) * 0.06)));
-  backdrop-filter: blur(18px);
+    0 calc(12px - (var(--topbar-progress) * 4px))
+    calc(26px - (var(--topbar-progress) * 8px))
+    rgba(0, 0, 0, calc(0.1 + (var(--topbar-progress) * 0.04)));
+  backdrop-filter: blur(14px);
   transform:
     translateY(calc(var(--topbar-progress) * -1px))
     scale(calc(1 - (var(--topbar-progress) * 0.025)));
