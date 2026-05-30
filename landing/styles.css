@@ -121,6 +121,14 @@ body {
   transition: color 160ms ease, opacity 160ms ease, font-size 220ms ease;
 }
 
+.topnav-contest {
+  display: none;
+}
+
+.topnav-contest:hover {
+  color: #ff6b6b;
+}
+
 .topnav a:hover {
   color: var(--text);
 }
@@ -339,13 +347,13 @@ h3 {
 
 .contest-label {
   position: absolute;
-  top: 24px;
-  left: 28px;
+  top: 34px;
+  left: 44px;
   margin: 0;
   color: #d64949;
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
@@ -729,6 +737,11 @@ h3 {
     grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
     align-items: center;
     padding: 28px;
+  }
+
+  .topnav-contest {
+    display: inline-flex;
+    color: #d64949;
   }
 
   h1 {
