@@ -283,7 +283,6 @@ h3 {
 .story-section,
 .contest-section,
 .tracks-section,
-.audience-section,
 .video-section {
   margin-top: 16px;
 }
@@ -291,7 +290,6 @@ h3 {
 .story-card,
 .contest-card,
 .track-card,
-.audience-card,
 .video-card {
   padding: 24px 20px;
   border-radius: var(--radius-xl);
@@ -431,24 +429,15 @@ h3 {
 }
 
 .tracks-grid,
-.audience-grid {
+.tracks-grid {
   display: grid;
   gap: 14px;
   margin-top: 16px;
 }
 
-.track-card,
-.audience-card {
+.track-card {
   position: relative;
   overflow: hidden;
-}
-
-.audience-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(204, 231, 255, 0.05), transparent 44%);
-  pointer-events: none;
 }
 
 .track-card p,
@@ -470,48 +459,6 @@ h3 {
 
 .track-card h3 {
   font-size: 30px;
-}
-
-.audience-card h3 {
-  font-size: clamp(26px, 3vw, 34px);
-  line-height: 1;
-}
-
-.audience-card p {
-  position: relative;
-  margin: 0;
-  padding-left: 22px;
-  color: var(--muted);
-  font-size: 16px;
-  line-height: 1.65;
-}
-
-.audience-card p::before {
-  content: "";
-  position: absolute;
-  top: 0.72em;
-  left: 0;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(204, 231, 255, 0.86);
-  box-shadow: 0 0 16px rgba(204, 231, 255, 0.28);
-}
-
-.audience-card p + p {
-  margin-top: 12px;
-}
-
-.audience-card span {
-  display: inline-block;
-  margin-bottom: 18px;
-  color: rgba(255, 255, 255, 0.42);
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.audience-card p {
-  margin-top: 14px;
 }
 
 .info-grid,
@@ -593,7 +540,7 @@ h3 {
 
 .steps,
 .tracks-grid,
-.audience-grid {
+.tracks-grid {
   grid-template-columns: 1fr;
 }
 
@@ -675,7 +622,6 @@ h3 {
   .story-card,
   .contest-card,
   .track-card,
-  .audience-card,
   .topbar {
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
   }
@@ -728,7 +674,6 @@ h3 {
   .story-card,
   .contest-card,
   .track-card,
-  .audience-card,
   .video-card {
     padding: 34px;
   }
@@ -744,10 +689,6 @@ h3 {
 
   .tracks-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .audience-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .steps {
