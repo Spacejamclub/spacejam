@@ -334,10 +334,14 @@ h3 {
 .contest-copy {
   max-width: 680px;
   padding-left: 18px;
+  padding-top: 22px;
 }
 
 .contest-label {
-  margin: 0 0 14px;
+  position: absolute;
+  top: 24px;
+  left: 28px;
+  margin: 0;
   color: #d64949;
   font-size: 13px;
   font-weight: 800;
