@@ -711,10 +711,10 @@ h3 {
     max-height: 54px;
     overflow: hidden;
     transition:
-      max-height 150ms ease,
-      opacity 120ms ease,
-      transform 150ms ease,
-      margin 150ms ease;
+      max-height 90ms ease-out,
+      opacity 80ms ease-out,
+      transform 90ms ease-out,
+      margin 90ms ease-out;
   }
 
   .topnav a {
