@@ -676,14 +676,14 @@ h3 {
   }
 
   .topbar {
-    width: min(320px, calc(100% - 24px - (var(--topbar-progress) * 36px)));
-    gap: calc(10px - (var(--topbar-progress) * 3px));
-    margin: 0 auto 14px;
+    width: min(286px, calc(100% - 18px - (var(--topbar-progress) * 34px)));
+    gap: calc(7px - (var(--topbar-progress) * 2px));
+    margin: 0 auto 12px;
     padding:
-      calc(10px - (var(--topbar-progress) * 2px))
-      calc(14px - (var(--topbar-progress) * 2px))
-      calc(10px - (var(--topbar-progress) * 2px));
-    border-radius: calc(26px - (var(--topbar-progress) * 8px));
+      calc(8px - (var(--topbar-progress) * 1.5px))
+      calc(12px - (var(--topbar-progress) * 1.5px))
+      calc(8px - (var(--topbar-progress) * 1.5px));
+    border-radius: calc(22px - (var(--topbar-progress) * 6px));
     align-items: center;
     justify-content: center;
     flex-direction: column;
@@ -693,8 +693,8 @@ h3 {
   .brand-mark {
     justify-content: center;
     width: 100%;
-    font-size: calc(11.5px - (var(--topbar-progress) * 0.5px));
-    letter-spacing: calc(0.1em - (var(--topbar-progress) * 0.02em));
+    font-size: calc(11px - (var(--topbar-progress) * 0.35px));
+    letter-spacing: calc(0.12em - (var(--topbar-progress) * 0.02em));
     text-align: center;
   }
 
@@ -706,35 +706,35 @@ h3 {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: center;
-    gap: 6px 8px;
+    gap: 4px 10px;
     width: 100%;
-    max-height: 88px;
+    max-height: 54px;
     overflow: hidden;
     transition:
-      max-height 220ms ease,
-      opacity 180ms ease,
-      transform 220ms ease,
-      margin 220ms ease;
+      max-height 150ms ease,
+      opacity 120ms ease,
+      transform 150ms ease,
+      margin 150ms ease;
   }
 
   .topnav a {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 28px;
-    padding: 0 8px;
-    border-radius: 999px;
-    font-size: calc(10.5px - (var(--topbar-progress) * 0.35px));
-    letter-spacing: 0.04em;
+    min-height: 18px;
+    padding: 0;
+    font-size: calc(10px - (var(--topbar-progress) * 0.2px));
+    font-weight: 600;
+    letter-spacing: 0.02em;
     line-height: 1;
     text-align: center;
-    background: rgba(255, 255, 255, 0.03);
+    background: transparent;
   }
 
   .topbar.topbar-collapsed {
-    width: 156px;
+    width: 132px;
     gap: 0;
-    padding: 10px 18px;
+    padding: 9px 14px;
     border-radius: 999px;
   }
 
@@ -746,7 +746,7 @@ h3 {
     max-height: 0;
     margin: 0;
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-8px);
     pointer-events: none;
   }
 
