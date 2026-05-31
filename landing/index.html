@@ -306,11 +306,13 @@
         if (!topbar) return;
 
         const maxScroll = 180;
+        const mobileQuery = window.matchMedia("(max-width: 819px)");
         let ticking = false;
 
         const updateTopbar = () => {
           const progress = Math.min(window.scrollY / maxScroll, 1);
           topbar.style.setProperty("--topbar-progress", progress.toFixed(3));
+          topbar.classList.toggle("topbar-collapsed", mobileQuery.matches && progress >= 0.52);
           ticking = false;
         };
 

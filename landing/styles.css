@@ -676,43 +676,78 @@ h3 {
   }
 
   .topbar {
-    width: calc(100% - 52px - (var(--topbar-progress) * 28px));
-    gap: calc(6px - (var(--topbar-progress) * 2px));
-    margin: 0 auto 12px;
+    width: min(320px, calc(100% - 24px - (var(--topbar-progress) * 36px)));
+    gap: calc(10px - (var(--topbar-progress) * 3px));
+    margin: 0 auto 14px;
     padding:
-      calc(9px - (var(--topbar-progress) * 2.5px))
-      calc(14px - (var(--topbar-progress) * 2.5px))
-      calc(9px - (var(--topbar-progress) * 2.5px));
-    border-radius: calc(24px - (var(--topbar-progress) * 8px));
-    align-items: stretch;
+      calc(10px - (var(--topbar-progress) * 2px))
+      calc(14px - (var(--topbar-progress) * 2px))
+      calc(10px - (var(--topbar-progress) * 2px));
+    border-radius: calc(26px - (var(--topbar-progress) * 8px));
+    align-items: center;
+    justify-content: center;
     flex-direction: column;
+    overflow: hidden;
   }
 
   .brand-mark {
     justify-content: center;
     width: 100%;
-    font-size: calc(11.5px - (var(--topbar-progress) * 0.9px));
+    font-size: calc(11.5px - (var(--topbar-progress) * 0.5px));
     letter-spacing: calc(0.1em - (var(--topbar-progress) * 0.02em));
     text-align: center;
   }
 
+  .topnav-contest {
+    display: flex;
+  }
+
   .topnav {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: center;
-    gap: calc(2px - (var(--topbar-progress) * 1px));
+    gap: 6px 8px;
     width: 100%;
+    max-height: 88px;
+    overflow: hidden;
+    transition:
+      max-height 220ms ease,
+      opacity 180ms ease,
+      transform 220ms ease,
+      margin 220ms ease;
   }
 
   .topnav a {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: calc(24px - (var(--topbar-progress) * 6px));
-    font-size: calc(10.5px - (var(--topbar-progress) * 0.7px));
-    letter-spacing: calc(0.03em - (var(--topbar-progress) * 0.01em));
+    min-height: 28px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: calc(10.5px - (var(--topbar-progress) * 0.35px));
+    letter-spacing: 0.04em;
     line-height: 1;
     text-align: center;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .topbar.topbar-collapsed {
+    width: 156px;
+    gap: 0;
+    padding: 10px 18px;
+    border-radius: 999px;
+  }
+
+  .topbar.topbar-collapsed .brand-mark {
+    width: auto;
+  }
+
+  .topbar.topbar-collapsed .topnav {
+    max-height: 0;
+    margin: 0;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
   }
 
   .hero,
