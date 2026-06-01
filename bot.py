@@ -1200,7 +1200,6 @@ def build_main_keyboard() -> ReplyKeyboardMarkup:
         keyboard=[
             [KeyboardButton(text="КУРС"), KeyboardButton(text="МОЙ ПРОГРЕСС")],
             [payment_button, KeyboardButton(text="ПОМОЩЬ")],
-            [KeyboardButton(text="ЧАСТО ЗАДАВАЕМЫЕ ВОПРОСЫ")],
         ],
         is_persistent=True,
         resize_keyboard=True,
