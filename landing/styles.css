@@ -676,14 +676,14 @@ h3 {
   }
 
   .topbar {
-    width: min(286px, calc(100% - 18px - (var(--topbar-progress) * 34px)));
-    gap: calc(7px - (var(--topbar-progress) * 2px));
-    margin: 0 auto 12px;
+    width: min(248px, calc(100% - 28px - (var(--topbar-progress) * 28px)));
+    gap: calc(5px - (var(--topbar-progress) * 1.5px));
+    margin: 0 auto 10px;
     padding:
-      calc(8px - (var(--topbar-progress) * 1.5px))
-      calc(12px - (var(--topbar-progress) * 1.5px))
-      calc(8px - (var(--topbar-progress) * 1.5px));
-    border-radius: calc(22px - (var(--topbar-progress) * 6px));
+      calc(7px - (var(--topbar-progress) * 1.2px))
+      calc(10px - (var(--topbar-progress) * 1.2px))
+      calc(7px - (var(--topbar-progress) * 1.2px));
+    border-radius: calc(18px - (var(--topbar-progress) * 5px));
     align-items: center;
     justify-content: center;
     flex-direction: column;
@@ -693,8 +693,8 @@ h3 {
   .brand-mark {
     justify-content: center;
     width: 100%;
-    font-size: calc(11px - (var(--topbar-progress) * 0.35px));
-    letter-spacing: calc(0.12em - (var(--topbar-progress) * 0.02em));
+    font-size: calc(10px - (var(--topbar-progress) * 0.3px));
+    letter-spacing: calc(0.1em - (var(--topbar-progress) * 0.015em));
     text-align: center;
   }
 
@@ -706,9 +706,9 @@ h3 {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: center;
-    gap: 4px 10px;
+    gap: 3px 8px;
     width: 100%;
-    max-height: 54px;
+    max-height: 44px;
     overflow: hidden;
     transition:
       max-height 70ms ease-out,
@@ -721,9 +721,9 @@ h3 {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 18px;
+    min-height: 16px;
     padding: 0;
-    font-size: calc(10px - (var(--topbar-progress) * 0.2px));
+    font-size: calc(9px - (var(--topbar-progress) * 0.18px));
     font-weight: 600;
     letter-spacing: 0.02em;
     line-height: 1;
@@ -732,9 +732,9 @@ h3 {
   }
 
   .topbar.topbar-collapsed {
-    width: 132px;
+    width: 116px;
     gap: 0;
-    padding: 9px 14px;
+    padding: 8px 12px;
     border-radius: 999px;
   }
 
