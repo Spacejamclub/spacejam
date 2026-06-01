@@ -1516,6 +1516,9 @@ def render_landing_html() -> str:
     hero_image_path = BASE_DIR / "assets" / "welcome.jpg"
     story_image_path = BASE_DIR / "assets" / "story.jpg"
     contest_image_path = BASE_DIR / "assets" / "contest.jpg"
+    favicon_32_path = LANDING_DIR / "favicon-32x32.png"
+    apple_touch_icon_path = LANDING_DIR / "apple-touch-icon.png"
+    icon_512_path = LANDING_DIR / "icon-512.png"
     hero_image_url = build_versioned_asset_url("/landing/hero.jpg", hero_image_path) if hero_image_path.exists() else ""
     story_image_url = (
         build_versioned_asset_url("/landing/story.jpg", story_image_path)
@@ -1534,6 +1537,15 @@ def render_landing_html() -> str:
         "{{HERO_IMAGE_URL}}": html.escape(hero_image_url, quote=True),
         "{{STORY_IMAGE_URL}}": html.escape(story_image_url, quote=True),
         "{{CONTEST_IMAGE_URL}}": html.escape(contest_image_url, quote=True),
+        "{{FAVICON_32_URL}}": html.escape(
+            build_versioned_asset_url("/landing/favicon-32x32.png", favicon_32_path), quote=True
+        ),
+        "{{APPLE_TOUCH_ICON_URL}}": html.escape(
+            build_versioned_asset_url("/landing/apple-touch-icon.png", apple_touch_icon_path), quote=True
+        ),
+        "{{ICON_512_URL}}": html.escape(
+            build_versioned_asset_url("/landing/icon-512.png", icon_512_path), quote=True
+        ),
         "{{VIDEO_SECTION}}": render_landing_video_section(),
         "{{LANDING_STYLES_URL}}": html.escape(
             build_versioned_asset_url("/landing/styles.css", LANDING_DIR / "styles.css"), quote=True
@@ -1568,6 +1580,18 @@ async def landing_story_handler(_: web.Request) -> web.FileResponse:
 
 async def landing_contest_handler(_: web.Request) -> web.FileResponse:
     return build_static_file_response(BASE_DIR / "assets" / "contest.jpg")
+
+
+async def landing_favicon_handler(_: web.Request) -> web.FileResponse:
+    return build_static_file_response(LANDING_DIR / "favicon-32x32.png")
+
+
+async def landing_apple_touch_icon_handler(_: web.Request) -> web.FileResponse:
+    return build_static_file_response(LANDING_DIR / "apple-touch-icon.png")
+
+
+async def landing_icon_512_handler(_: web.Request) -> web.FileResponse:
+    return build_static_file_response(LANDING_DIR / "icon-512.png")
 
 
 async def miniapp_page_handler(_: web.Request) -> web.FileResponse:
@@ -1700,6 +1724,12 @@ def build_web_application(bot: Bot) -> web.Application:
     app.router.add_get("/landing/hero.jpg", landing_hero_handler)
     app.router.add_get("/landing/story.jpg", landing_story_handler)
     app.router.add_get("/landing/contest.jpg", landing_contest_handler)
+    app.router.add_get("/landing/favicon-32x32.png", landing_favicon_handler)
+    app.router.add_get("/landing/apple-touch-icon.png", landing_apple_touch_icon_handler)
+    app.router.add_get("/landing/icon-512.png", landing_icon_512_handler)
+    app.router.add_get("/favicon.ico", landing_favicon_handler)
+    app.router.add_get("/favicon-32x32.png", landing_favicon_handler)
+    app.router.add_get("/apple-touch-icon.png", landing_apple_touch_icon_handler)
     app.router.add_get("/healthz", healthz_handler)
     app.router.add_get("/miniapp", miniapp_page_handler)
     app.router.add_get("/miniapp/styles.css", miniapp_styles_handler)
