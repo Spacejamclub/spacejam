@@ -677,19 +677,32 @@ h3 {
 
   .contest-copy {
     padding-top: 0;
-    padding-left: 0;
+    padding-left: 16px;
   }
 
   .contest-label {
     position: static;
     display: block;
-    margin-bottom: 10px;
-    font-size: 13px;
+    margin-bottom: 8px;
+    font-size: 12px;
     letter-spacing: 0.12em;
   }
 
   .contest-copy h2 {
     max-width: 100%;
+    font-size: 28px;
+    line-height: 0.98;
+  }
+
+  .contest-card p {
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  .contest-card::before {
+    top: 22px;
+    bottom: 22px;
+    left: 16px;
   }
 
   .topbar {
