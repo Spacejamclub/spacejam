@@ -415,7 +415,7 @@ h1 {
 
 @media (max-width: 520px) {
   body {
-    padding: 12px 12px 26px;
+    padding: 10px 10px 24px;
   }
 
   .hero,
@@ -425,8 +425,40 @@ h1 {
     padding-right: 16px;
   }
 
+  .hero {
+    width: min(100%, 348px);
+    margin: 0 auto;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    border-radius: 24px;
+  }
+
+  .eyebrow {
+    margin-bottom: 8px;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+  }
+
   h1 {
-    font-size: 34px;
+    font-size: 30px;
+    line-height: 0.98;
+  }
+
+  .lead {
+    margin-top: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .hero-meta {
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .pill {
+    min-height: 30px;
+    padding: 0 11px;
+    font-size: 12px;
   }
 
   .method h2 {
