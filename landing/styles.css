@@ -675,6 +675,23 @@ h3 {
     background: #020202;
   }
 
+  .contest-copy {
+    padding-top: 0;
+    padding-left: 0;
+  }
+
+  .contest-label {
+    position: static;
+    display: block;
+    margin-bottom: 10px;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+  }
+
+  .contest-copy h2 {
+    max-width: 100%;
+  }
+
   .topbar {
     width: min(248px, calc(100% - 28px - (var(--topbar-progress) * 28px)));
     gap: calc(5px - (var(--topbar-progress) * 1.5px));
