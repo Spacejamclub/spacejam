@@ -417,8 +417,8 @@ h3 {
 .contest-image-wrap {
   overflow: hidden;
   width: 100%;
-  min-height: 280px;
-  max-width: 320px;
+  min-height: 228px;
+  max-width: 252px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: calc(var(--radius-xl) - 8px);
   background: rgba(14, 14, 14, 0.96);
@@ -836,8 +836,8 @@ h3 {
   }
 
   .contest-image-wrap {
-    min-height: 340px;
-    max-width: 320px;
+    min-height: 292px;
+    max-width: 272px;
   }
 
   .video-frame-wrap {
