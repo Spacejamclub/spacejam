@@ -5,10 +5,11 @@ import hmac
 import json
 import logging
 import os
+import sqlite3
 import time
 from pathlib import Path
 from typing import Any, Optional
-from urllib.parse import parse_qsl
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from aiohttp import ClientSession, web
 from aiogram import Bot, Dispatcher, F
@@ -41,9 +42,10 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent
 MINIAPP_DIR = BASE_DIR / "miniapp"
 LANDING_DIR = BASE_DIR / "landing"
-DATA_DIR = BASE_DIR / "data"
+DATA_DIR = Path(os.getenv("SPACEJAM_DATA_DIR", str(BASE_DIR / "data"))).expanduser().resolve()
 CONTENT_DIR = BASE_DIR / "content"
-STATE_PATH = DATA_DIR / "course_state.json"
+STATE_PATH = Path(os.getenv("SPACEJAM_STATE_PATH", str(DATA_DIR / "course_state.json"))).expanduser().resolve()
+DB_PATH = Path(os.getenv("SPACEJAM_DB_PATH", str(DATA_DIR / "course_state.sqlite3"))).expanduser().resolve()
 COURSES_PATH = CONTENT_DIR / "courses.json"
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WELCOME_IMAGE_PATH = os.getenv("WELCOME_IMAGE_PATH")
@@ -77,10 +79,12 @@ CRYPTO_PAY_API_BASE = os.getenv("CRYPTO_PAY_API_BASE", "https://pay.crypt.bot/ap
 CRYPTO_INVOICE_FIAT = os.getenv("CRYPTO_INVOICE_FIAT", "USD").strip().upper()
 CRYPTO_INVOICE_AMOUNT = os.getenv("CRYPTO_INVOICE_AMOUNT", "24.99").strip()
 CRYPTO_ACCEPTED_ASSETS = os.getenv("CRYPTO_ACCEPTED_ASSETS", "USDT,TON,BTC").strip()
+PAYMENT_WEBHOOK_SECRET = os.getenv("PAYMENT_WEBHOOK_SECRET", "").strip()
 STATIC_ASSET_CACHE_CONTROL = "public, max-age=604800, stale-while-revalidate=86400"
 DEFAULT_WELCOME_IMAGE_PATH = BASE_DIR / "assets" / "welcome.jpg"
 active_panels: dict[int, int] = {}
 keyboard_hosts: dict[int, int] = {}
+DATABASE_READY = False
 
 if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN is not set in .env")
@@ -368,7 +372,11 @@ def get_user_key(user_id: int) -> str:
     return str(user_id)
 
 
-def load_course_state() -> dict[str, Any]:
+def current_timestamp() -> int:
+    return int(time.time())
+
+
+def load_legacy_course_state() -> dict[str, Any]:
     if not STATE_PATH.exists():
         return {"users": {}}
 
@@ -376,7 +384,7 @@ def load_course_state() -> dict[str, Any]:
         with STATE_PATH.open("r", encoding="utf-8") as file:
             data = json.load(file)
     except (OSError, json.JSONDecodeError):
-        logging.exception("Failed to load course state from %s", STATE_PATH)
+        logging.exception("Failed to load legacy course state from %s", STATE_PATH)
         return {"users": {}}
 
     if not isinstance(data, dict):
@@ -389,44 +397,392 @@ def load_course_state() -> dict[str, Any]:
     return data
 
 
-def save_course_state(state: dict[str, Any]) -> None:
+def open_database() -> sqlite3.Connection:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    temp_path = STATE_PATH.with_suffix(".tmp")
-    with temp_path.open("w", encoding="utf-8") as file:
-        json.dump(state, file, ensure_ascii=False, indent=2)
-    temp_path.replace(STATE_PATH)
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
+    return conn
 
 
-def get_user_record(user_id: int) -> dict[str, Any]:
-    state = load_course_state()
-    return state.get("users", {}).get(get_user_key(user_id), {})
+def initialize_database(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            telegram_id INTEGER PRIMARY KEY,
+            first_name TEXT NOT NULL DEFAULT '',
+            last_name TEXT NOT NULL DEFAULT '',
+            username TEXT NOT NULL DEFAULT '',
+            has_access INTEGER NOT NULL DEFAULT 0,
+            activated_at INTEGER,
+            last_lesson TEXT,
+            updated_at INTEGER,
+            manual_access_source TEXT NOT NULL DEFAULT ''
+        );
+
+        CREATE TABLE IF NOT EXISTS payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            payment_method TEXT NOT NULL DEFAULT '',
+            payment_source TEXT NOT NULL DEFAULT '',
+            payment_reference TEXT NOT NULL UNIQUE,
+            amount INTEGER NOT NULL DEFAULT 0,
+            currency TEXT NOT NULL DEFAULT '',
+            display_amount TEXT NOT NULL DEFAULT '',
+            payload TEXT NOT NULL DEFAULT '',
+            telegram_charge_id TEXT NOT NULL DEFAULT '',
+            provider_charge_id TEXT NOT NULL DEFAULT '',
+            external_payment_id TEXT NOT NULL DEFAULT '',
+            paid_at INTEGER NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(telegram_id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS promo_activations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            code TEXT NOT NULL,
+            code_normalized TEXT NOT NULL,
+            activated_at INTEGER NOT NULL,
+            UNIQUE(user_id, code_normalized),
+            FOREIGN KEY(user_id) REFERENCES users(telegram_id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS lesson_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            track_key TEXT NOT NULL,
+            lesson_number INTEGER NOT NULL,
+            event_type TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            UNIQUE(user_id, track_key, lesson_number, event_type),
+            FOREIGN KEY(user_id) REFERENCES users(telegram_id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+        CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
+        CREATE INDEX IF NOT EXISTS idx_promo_user_id ON promo_activations(user_id);
+        CREATE INDEX IF NOT EXISTS idx_lesson_events_user_id ON lesson_events(user_id);
+        """
+    )
 
 
-def ensure_user_record(state: dict[str, Any], user_id: int) -> dict[str, Any]:
-    users = state.setdefault("users", {})
-    return users.setdefault(
-        get_user_key(user_id),
-        {
-            "has_access": False,
+def ensure_database_user(conn: sqlite3.Connection, user_id: int) -> None:
+    conn.execute(
+        """
+        INSERT INTO users (telegram_id, updated_at)
+        VALUES (?, ?)
+        ON CONFLICT(telegram_id) DO NOTHING
+        """,
+        (user_id, current_timestamp()),
+    )
+
+
+def build_payment_display_amount(payment: dict[str, Any]) -> str:
+    display_amount = str(payment.get("display_amount", "")).strip()
+    if display_amount:
+        return display_amount
+
+    amount = payment.get("amount", 0)
+    try:
+        normalized_amount = int(amount)
+    except (TypeError, ValueError):
+        normalized_amount = 0
+    return format_payment_amount(normalized_amount, str(payment.get("currency", "")).strip())
+
+
+def build_payment_reference(
+    payment_source: str,
+    *,
+    telegram_charge_id: str = "",
+    provider_charge_id: str = "",
+    external_payment_id: str = "",
+    payload: str = "",
+) -> str:
+    candidates = [
+        telegram_charge_id.strip(),
+        provider_charge_id.strip(),
+        external_payment_id.strip(),
+        payload.strip(),
+    ]
+    for candidate in candidates:
+        if candidate:
+            return f"{payment_source}:{candidate}"
+    return f"{payment_source}:{current_timestamp()}"
+
+
+def build_empty_user_record(user_id: int) -> dict[str, Any]:
+    return {
+        "has_access": False,
+        "payments": [],
+        "promo_activations": [],
+        "opened_lessons": [],
+        "completed_lessons": [],
+        "activated_at": None,
+        "last_lesson": None,
+        "updated_at": None,
+        "manual_access_source": "",
+        "profile": {
+            "id": user_id,
+            "first_name": "",
+            "last_name": "",
+            "username": "",
+        },
+    }
+
+
+def build_user_records_from_rows(
+    user_rows: list[sqlite3.Row],
+    payment_rows: list[sqlite3.Row],
+    promo_rows: list[sqlite3.Row],
+    lesson_rows: list[sqlite3.Row],
+) -> dict[int, dict[str, Any]]:
+    records: dict[int, dict[str, Any]] = {}
+
+    for row in user_rows:
+        user_id = int(row["telegram_id"])
+        records[user_id] = {
+            "has_access": bool(row["has_access"]),
             "payments": [],
             "promo_activations": [],
             "opened_lessons": [],
             "completed_lessons": [],
-            "activated_at": None,
-            "last_lesson": None,
-            "updated_at": None,
+            "activated_at": row["activated_at"],
+            "last_lesson": row["last_lesson"],
+            "updated_at": row["updated_at"],
+            "manual_access_source": row["manual_access_source"] or "",
             "profile": {
                 "id": user_id,
-                "first_name": "",
-                "last_name": "",
-                "username": "",
+                "first_name": row["first_name"] or "",
+                "last_name": row["last_name"] or "",
+                "username": row["username"] or "",
             },
-        },
-    )
+        }
+
+    for row in payment_rows:
+        user_id = int(row["user_id"])
+        record = records.setdefault(user_id, build_empty_user_record(user_id))
+        record["payments"].append(
+            {
+                "amount": row["amount"],
+                "currency": row["currency"],
+                "display_amount": row["display_amount"],
+                "payload": row["payload"],
+                "telegram_charge_id": row["telegram_charge_id"],
+                "provider_charge_id": row["provider_charge_id"],
+                "external_payment_id": row["external_payment_id"],
+                "payment_method": row["payment_method"],
+                "payment_source": row["payment_source"],
+                "paid_at": row["paid_at"],
+            }
+        )
+
+    for row in promo_rows:
+        user_id = int(row["user_id"])
+        record = records.setdefault(user_id, build_empty_user_record(user_id))
+        record["promo_activations"].append(
+            {
+                "code": row["code"],
+                "activated_at": row["activated_at"],
+            }
+        )
+
+    for row in lesson_rows:
+        user_id = int(row["user_id"])
+        record = records.setdefault(user_id, build_empty_user_record(user_id))
+        lesson_code = build_lesson_code(str(row["track_key"]), int(row["lesson_number"]))
+        if row["event_type"] == "opened":
+            record["opened_lessons"].append(lesson_code)
+        elif row["event_type"] == "completed":
+            record["completed_lessons"].append(lesson_code)
+
+    for record in records.values():
+        record["payments"].sort(key=lambda item: item.get("paid_at", 0))
+        record["promo_activations"].sort(key=lambda item: item.get("activated_at", 0))
+        record["opened_lessons"] = sorted(set(record["opened_lessons"]), key=lesson_sort_key)
+        record["completed_lessons"] = sorted(set(record["completed_lessons"]), key=lesson_sort_key)
+
+    return records
 
 
-def touch_user_record(record: dict[str, Any]) -> None:
-    record["updated_at"] = int(time.time())
+def migrate_legacy_state_if_needed(conn: sqlite3.Connection) -> None:
+    has_users = conn.execute("SELECT 1 FROM users LIMIT 1").fetchone()
+    if has_users:
+        return
+
+    legacy_state = load_legacy_course_state()
+    users = legacy_state.get("users", {})
+    if not isinstance(users, dict) or not users:
+        return
+
+    for user_key, record in users.items():
+        try:
+            user_id = int(user_key)
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(record, dict):
+            continue
+
+        profile = record.get("profile", {})
+        activated_at = record.get("activated_at")
+        updated_at = record.get("updated_at") or activated_at or current_timestamp()
+        last_lesson = record.get("last_lesson")
+        manual_access_source = str(record.get("manual_access_source", "")).strip()
+        conn.execute(
+            """
+            INSERT INTO users (
+                telegram_id, first_name, last_name, username,
+                has_access, activated_at, last_lesson, updated_at, manual_access_source
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(telegram_id) DO UPDATE SET
+                first_name = excluded.first_name,
+                last_name = excluded.last_name,
+                username = excluded.username,
+                has_access = excluded.has_access,
+                activated_at = COALESCE(users.activated_at, excluded.activated_at),
+                last_lesson = COALESCE(excluded.last_lesson, users.last_lesson),
+                updated_at = excluded.updated_at,
+                manual_access_source = excluded.manual_access_source
+            """,
+            (
+                user_id,
+                str(profile.get("first_name", "")).strip(),
+                str(profile.get("last_name", "")).strip(),
+                str(profile.get("username", "")).strip().lstrip("@"),
+                1 if record.get("has_access") else 0,
+                activated_at,
+                last_lesson,
+                updated_at,
+                manual_access_source,
+            ),
+        )
+
+        payments = record.get("payments", [])
+        for index, payment in enumerate(payments):
+            if not isinstance(payment, dict):
+                continue
+            amount = payment.get("amount", 0)
+            try:
+                normalized_amount = int(amount)
+            except (TypeError, ValueError):
+                normalized_amount = 0
+            currency = str(payment.get("currency", "")).strip().upper()
+            payment_source = "legacy"
+            payment_reference = build_payment_reference(
+                payment_source,
+                telegram_charge_id=str(payment.get("telegram_charge_id", "")),
+                provider_charge_id=str(payment.get("provider_charge_id", "")),
+                external_payment_id=f"{user_id}-{index}",
+                payload=str(payment.get("payload", "")),
+            )
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO payments (
+                    user_id, payment_method, payment_source, payment_reference,
+                    amount, currency, display_amount, payload,
+                    telegram_charge_id, provider_charge_id, external_payment_id, paid_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    user_id,
+                    "",
+                    payment_source,
+                    payment_reference,
+                    normalized_amount,
+                    currency,
+                    format_payment_amount(normalized_amount, currency),
+                    str(payment.get("payload", "")),
+                    str(payment.get("telegram_charge_id", "")),
+                    str(payment.get("provider_charge_id", "")),
+                    f"{user_id}-{index}",
+                    int(payment.get("paid_at") or updated_at),
+                ),
+            )
+
+        promos = record.get("promo_activations", [])
+        for promo in promos:
+            if not isinstance(promo, dict):
+                continue
+            code = str(promo.get("code", "")).strip()
+            if not code:
+                continue
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO promo_activations (user_id, code, code_normalized, activated_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    user_id,
+                    code,
+                    code.casefold(),
+                    int(promo.get("activated_at") or updated_at),
+                ),
+            )
+
+        opened_lessons = record.get("opened_lessons", [])
+        completed_lessons = record.get("completed_lessons", [])
+        for lesson_code in opened_lessons:
+            parsed = parse_lesson_code(str(lesson_code))
+            if not parsed:
+                continue
+            track_key, lesson_number = parsed
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO lesson_events (user_id, track_key, lesson_number, event_type, created_at)
+                VALUES (?, ?, ?, 'opened', ?)
+                """,
+                (user_id, track_key, lesson_number, updated_at),
+            )
+
+        for lesson_code in completed_lessons:
+            parsed = parse_lesson_code(str(lesson_code))
+            if not parsed:
+                continue
+            track_key, lesson_number = parsed
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO lesson_events (user_id, track_key, lesson_number, event_type, created_at)
+                VALUES (?, ?, ?, 'completed', ?)
+                """,
+                (user_id, track_key, lesson_number, updated_at),
+            )
+
+    logging.info("Migrated legacy course state from %s to %s", STATE_PATH, DB_PATH)
+
+
+def ensure_database_ready() -> None:
+    global DATABASE_READY
+    if DATABASE_READY:
+        return
+
+    with open_database() as conn:
+        initialize_database(conn)
+        migrate_legacy_state_if_needed(conn)
+        conn.commit()
+
+    DATABASE_READY = True
+
+
+def get_user_record(user_id: int) -> dict[str, Any]:
+    ensure_database_ready()
+    with open_database() as conn:
+        user_row = conn.execute("SELECT * FROM users WHERE telegram_id = ?", (user_id,)).fetchone()
+        if not user_row:
+            return {}
+
+        payment_rows = conn.execute("SELECT * FROM payments WHERE user_id = ? ORDER BY paid_at, id", (user_id,)).fetchall()
+        promo_rows = conn.execute(
+            "SELECT * FROM promo_activations WHERE user_id = ? ORDER BY activated_at, id",
+            (user_id,),
+        ).fetchall()
+        lesson_rows = conn.execute(
+            "SELECT * FROM lesson_events WHERE user_id = ? ORDER BY created_at, id",
+            (user_id,),
+        ).fetchall()
+
+    return build_user_records_from_rows([user_row], payment_rows, promo_rows, lesson_rows).get(user_id, {})
 
 
 def sync_user_profile(
@@ -436,15 +792,24 @@ def sync_user_profile(
     last_name: str = "",
     username: str = "",
 ) -> None:
-    state = load_course_state()
-    record = ensure_user_record(state, user_id)
-    profile = record.setdefault("profile", {"id": user_id})
-    profile["id"] = user_id
-    profile["first_name"] = first_name.strip()
-    profile["last_name"] = last_name.strip()
-    profile["username"] = username.strip().lstrip("@")
-    touch_user_record(record)
-    save_course_state(state)
+    ensure_database_ready()
+    with open_database() as conn:
+        ensure_database_user(conn, user_id)
+        conn.execute(
+            """
+            UPDATE users
+            SET first_name = ?, last_name = ?, username = ?, updated_at = ?
+            WHERE telegram_id = ?
+            """,
+            (
+                first_name.strip(),
+                last_name.strip(),
+                username.strip().lstrip("@"),
+                current_timestamp(),
+                user_id,
+            ),
+        )
+        conn.commit()
 
 
 def sync_aiogram_user(user: Optional[TelegramUser]) -> None:
@@ -531,111 +896,211 @@ def grant_course_access(
     telegram_charge_id: str,
     provider_charge_id: str,
     payload: str,
-) -> None:
-    state = load_course_state()
-    record = ensure_user_record(state, user_id)
-    record["has_access"] = True
-    if not record.get("activated_at"):
-        record["activated_at"] = int(time.time())
+    payment_method: str = "",
+    payment_source: str = "telegram",
+    external_payment_id: str = "",
+    display_amount: str = "",
+    paid_at: Optional[int] = None,
+) -> bool:
+    ensure_database_ready()
+    normalized_amount = int(amount)
+    normalized_currency = currency.strip().upper()
+    timestamp = paid_at or current_timestamp()
+    payment_reference = build_payment_reference(
+        payment_source,
+        telegram_charge_id=telegram_charge_id,
+        provider_charge_id=provider_charge_id,
+        external_payment_id=external_payment_id,
+        payload=payload,
+    )
 
-    payments = record.setdefault("payments", [])
-    already_exists = any(payment.get("telegram_charge_id") == telegram_charge_id for payment in payments)
-    if not already_exists:
-        payments.append(
-            {
-                "amount": amount,
-                "currency": currency,
-                "payload": payload,
-                "telegram_charge_id": telegram_charge_id,
-                "provider_charge_id": provider_charge_id,
-                "paid_at": int(time.time()),
-            }
+    with open_database() as conn:
+        ensure_database_user(conn, user_id)
+        conn.execute(
+            """
+            UPDATE users
+            SET has_access = 1,
+                activated_at = COALESCE(activated_at, ?),
+                updated_at = ?,
+                manual_access_source = ''
+            WHERE telegram_id = ?
+            """,
+            (timestamp, timestamp, user_id),
         )
 
-    touch_user_record(record)
-    save_course_state(state)
+        already_exists = conn.execute(
+            "SELECT 1 FROM payments WHERE payment_reference = ?",
+            (payment_reference,),
+        ).fetchone()
+        if not already_exists:
+            conn.execute(
+                """
+                INSERT INTO payments (
+                    user_id, payment_method, payment_source, payment_reference,
+                    amount, currency, display_amount, payload,
+                    telegram_charge_id, provider_charge_id, external_payment_id, paid_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    user_id,
+                    payment_method.strip(),
+                    payment_source.strip(),
+                    payment_reference,
+                    normalized_amount,
+                    normalized_currency,
+                    display_amount.strip() or format_payment_amount(normalized_amount, normalized_currency),
+                    payload.strip(),
+                    telegram_charge_id.strip(),
+                    provider_charge_id.strip(),
+                    external_payment_id.strip(),
+                    timestamp,
+                ),
+            )
+        conn.commit()
+
+    return not bool(already_exists)
 
 
 def grant_course_access_via_promo(user_id: int, promo_code: str) -> bool:
-    state = load_course_state()
-    record = ensure_user_record(state, user_id)
     promo_code_normalized = promo_code.strip().casefold()
-    promo_activations = record.setdefault("promo_activations", [])
+    timestamp = current_timestamp()
+    ensure_database_ready()
 
-    already_used = any(item.get("code", "").casefold() == promo_code_normalized for item in promo_activations)
-    had_access = bool(record.get("has_access"))
-    record["has_access"] = True
-    if not record.get("activated_at"):
-        record["activated_at"] = int(time.time())
-
-    if not already_used:
-        promo_activations.append(
-            {
-                "code": promo_code,
-                "activated_at": int(time.time()),
-            }
+    with open_database() as conn:
+        ensure_database_user(conn, user_id)
+        existing_user = conn.execute("SELECT has_access FROM users WHERE telegram_id = ?", (user_id,)).fetchone()
+        had_access = bool(existing_user["has_access"]) if existing_user else False
+        conn.execute(
+            """
+            UPDATE users
+            SET has_access = 1,
+                activated_at = COALESCE(activated_at, ?),
+                updated_at = ?,
+                manual_access_source = ''
+            WHERE telegram_id = ?
+            """,
+            (timestamp, timestamp, user_id),
         )
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO promo_activations (user_id, code, code_normalized, activated_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (user_id, promo_code.strip(), promo_code_normalized, timestamp),
+        )
+        conn.commit()
 
-    touch_user_record(record)
-    save_course_state(state)
     return not had_access
 
 
 def grant_course_access_manual(user_id: int, *, source: str = "admin") -> bool:
-    state = load_course_state()
-    record = ensure_user_record(state, user_id)
-    had_access = bool(record.get("has_access"))
-    record["has_access"] = True
-    if not record.get("activated_at"):
-        record["activated_at"] = int(time.time())
-    record["manual_access_source"] = source
-    touch_user_record(record)
-    save_course_state(state)
+    ensure_database_ready()
+    timestamp = current_timestamp()
+    with open_database() as conn:
+        ensure_database_user(conn, user_id)
+        existing_user = conn.execute("SELECT has_access FROM users WHERE telegram_id = ?", (user_id,)).fetchone()
+        had_access = bool(existing_user["has_access"]) if existing_user else False
+        conn.execute(
+            """
+            UPDATE users
+            SET has_access = 1,
+                activated_at = COALESCE(activated_at, ?),
+                updated_at = ?,
+                manual_access_source = ?
+            WHERE telegram_id = ?
+            """,
+            (timestamp, timestamp, source.strip(), user_id),
+        )
+        conn.commit()
     return not had_access
 
 
 def revoke_course_access(user_id: int) -> bool:
-    state = load_course_state()
-    record = ensure_user_record(state, user_id)
-    had_access = bool(record.get("has_access"))
-    record["has_access"] = False
-    touch_user_record(record)
-    save_course_state(state)
+    ensure_database_ready()
+    with open_database() as conn:
+        ensure_database_user(conn, user_id)
+        existing_user = conn.execute("SELECT has_access FROM users WHERE telegram_id = ?", (user_id,)).fetchone()
+        had_access = bool(existing_user["has_access"]) if existing_user else False
+        conn.execute(
+            """
+            UPDATE users
+            SET has_access = 0, updated_at = ?
+            WHERE telegram_id = ?
+            """,
+            (current_timestamp(), user_id),
+        )
+        conn.commit()
     return had_access
 
 
 def register_lesson_open(user_id: int, track_key: str, lesson_number: int) -> None:
-    state = load_course_state()
-    record = ensure_user_record(state, user_id)
     lesson_code = build_lesson_code(track_key, lesson_number)
-
-    opened_lessons = set(record.get("opened_lessons", []))
-    opened_lessons.add(lesson_code)
-    record["opened_lessons"] = sorted(opened_lessons, key=lesson_sort_key)
-    record["last_lesson"] = lesson_code
-
-    touch_user_record(record)
-    save_course_state(state)
+    ensure_database_ready()
+    with open_database() as conn:
+        ensure_database_user(conn, user_id)
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO lesson_events (user_id, track_key, lesson_number, event_type, created_at)
+            VALUES (?, ?, ?, 'opened', ?)
+            """,
+            (user_id, track_key, lesson_number, current_timestamp()),
+        )
+        conn.execute(
+            """
+            UPDATE users
+            SET last_lesson = ?, updated_at = ?
+            WHERE telegram_id = ?
+            """,
+            (lesson_code, current_timestamp(), user_id),
+        )
+        conn.commit()
 
 
 def mark_lesson_completed(user_id: int, track_key: str, lesson_number: int) -> bool:
-    state = load_course_state()
-    record = ensure_user_record(state, user_id)
     lesson_code = build_lesson_code(track_key, lesson_number)
-    completed_lessons = set(record.get("completed_lessons", []))
-    already_completed = lesson_code in completed_lessons
-    completed_lessons.add(lesson_code)
-    record["completed_lessons"] = sorted(completed_lessons, key=lesson_sort_key)
-    record["last_lesson"] = lesson_code
-    touch_user_record(record)
-    save_course_state(state)
-    return not already_completed
+    ensure_database_ready()
+    with open_database() as conn:
+        ensure_database_user(conn, user_id)
+        already_completed = conn.execute(
+            """
+            SELECT 1
+            FROM lesson_events
+            WHERE user_id = ? AND track_key = ? AND lesson_number = ? AND event_type = 'completed'
+            """,
+            (user_id, track_key, lesson_number),
+        ).fetchone()
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO lesson_events (user_id, track_key, lesson_number, event_type, created_at)
+            VALUES (?, ?, ?, 'completed', ?)
+            """,
+            (user_id, track_key, lesson_number, current_timestamp()),
+        )
+        conn.execute(
+            """
+            UPDATE users
+            SET last_lesson = ?, updated_at = ?
+            WHERE telegram_id = ?
+            """,
+            (lesson_code, current_timestamp(), user_id),
+        )
+        conn.commit()
+    return not bool(already_completed)
 
 
 def is_lesson_completed(user_id: int, track_key: str, lesson_number: int) -> bool:
-    record = get_user_record(user_id)
-    lesson_code = build_lesson_code(track_key, lesson_number)
-    return lesson_code in set(record.get("completed_lessons", []))
+    ensure_database_ready()
+    with open_database() as conn:
+        completed = conn.execute(
+            """
+            SELECT 1
+            FROM lesson_events
+            WHERE user_id = ? AND track_key = ? AND lesson_number = ? AND event_type = 'completed'
+            """,
+            (user_id, track_key, lesson_number),
+        ).fetchone()
+    return bool(completed)
 
 
 def get_continue_lesson_code(user_id: int) -> Optional[str]:
@@ -700,17 +1165,15 @@ def resolve_target_user_id(raw_value: str) -> Optional[int]:
 
 
 def get_all_user_records() -> list[tuple[int, dict[str, Any]]]:
-    state = load_course_state()
-    users = state.get("users", {})
-    result: list[tuple[int, dict[str, Any]]] = []
-    for user_key, record in users.items():
-        try:
-            user_id = int(user_key)
-        except ValueError:
-            continue
-        if isinstance(record, dict):
-            result.append((user_id, record))
-    return result
+    ensure_database_ready()
+    with open_database() as conn:
+        user_rows = conn.execute("SELECT * FROM users ORDER BY telegram_id").fetchall()
+        payment_rows = conn.execute("SELECT * FROM payments ORDER BY paid_at, id").fetchall()
+        promo_rows = conn.execute("SELECT * FROM promo_activations ORDER BY activated_at, id").fetchall()
+        lesson_rows = conn.execute("SELECT * FROM lesson_events ORDER BY created_at, id").fetchall()
+
+    records = build_user_records_from_rows(user_rows, payment_rows, promo_rows, lesson_rows)
+    return sorted(records.items(), key=lambda item: item[0])
 
 
 def build_user_label(user_id: int, record: Optional[dict[str, Any]] = None) -> str:
@@ -750,13 +1213,22 @@ def build_admin_stats_text() -> str:
 
 
 def detect_payment_method(payment: dict[str, Any]) -> str:
+    explicit_method = str(payment.get("payment_method", "")).strip().casefold()
     currency = str(payment.get("currency", "")).upper()
     payload = str(payment.get("payload", ""))
 
+    if explicit_method in {"stars", "xtr"}:
+        return "Stars"
+    if explicit_method in {"card", "bank_card"}:
+        return "Карта"
+    if explicit_method in {"crypto", "cryptopay"}:
+        return "Крипта"
     if currency == "XTR":
         return "Stars"
     if payload.startswith(f"{CARD_PAYLOAD}:") or payload == CARD_PAYLOAD:
         return "Карта"
+    if str(payment.get("payment_source", "")).strip().startswith("crypto"):
+        return "Крипта"
     return "Telegram payment"
 
 
@@ -816,7 +1288,7 @@ def build_admin_user_text(user_id: int) -> str:
     opened_count = len(record.get("opened_lessons", []))
     last_lesson = record.get("last_lesson") or "—"
     payment_lines = [
-        f"• {detect_payment_method(payment)} · {format_payment_amount(int(payment.get('amount', 0)), str(payment.get('currency', '')))} · {format_timestamp(payment.get('paid_at'))}"
+        f"• {detect_payment_method(payment)} · {build_payment_display_amount(payment)} · {format_timestamp(payment.get('paid_at'))}"
         for payment in payments[-5:]
     ]
     promo_lines = [
@@ -869,7 +1341,7 @@ def build_payments_text(limit: int = 20) -> str:
             lines.append(
                 f"{index}. {build_user_label(user_id, record)} — "
                 f"{detect_payment_method(payment)}, "
-                f"{format_payment_amount(int(payment.get('amount', 0)), str(payment.get('currency', '')))}, "
+                f"{build_payment_display_amount(payment)}, "
                 f"{format_timestamp(payment.get('paid_at'))}"
             )
         if len(payment_rows) > limit:
@@ -1328,6 +1800,72 @@ def build_user_payment_payload(base_payload: str, user_id: Optional[int] = None)
     return f"{base_payload}:{':'.join(suffix_parts)}"
 
 
+def extract_user_id_from_payment_payload(payload: str) -> Optional[int]:
+    parts = [part.strip() for part in payload.split(":") if part.strip()]
+    if len(parts) < 2:
+        return None
+
+    try:
+        return int(parts[1])
+    except ValueError:
+        return None
+
+
+def build_public_base_url() -> str:
+    parsed = urlsplit(MINI_APP_URL)
+    if not parsed.scheme or not parsed.netloc:
+        return ""
+    return urlunsplit((parsed.scheme, parsed.netloc, "", "", "")).rstrip("/")
+
+
+def append_query_parameters(url: str, params: dict[str, str]) -> str:
+    parsed = urlsplit(url)
+    existing_params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    merged_params = {**existing_params, **params}
+    query = urlencode(merged_params)
+    return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, query, parsed.fragment))
+
+
+def build_payment_webhook_url(method: str) -> str:
+    base_url = build_public_base_url()
+    if not base_url:
+        return ""
+    return f"{base_url}/webhooks/payments/{method}"
+
+
+def build_external_checkout_url(
+    base_url: str,
+    *,
+    method: str,
+    payload: str,
+    user_id: Optional[int],
+) -> str:
+    if not base_url or user_id is None:
+        return base_url
+
+    params = {
+        "tg_user_id": str(user_id),
+        "payment_payload": payload,
+        "payment_method": method,
+    }
+    webhook_url = build_payment_webhook_url(method)
+    if webhook_url:
+        params["spacejam_webhook_url"] = webhook_url
+
+    return append_query_parameters(base_url, params)
+
+
+async def read_json_request(request: web.Request) -> dict[str, Any]:
+    try:
+        data = await request.json()
+    except json.JSONDecodeError as exc:
+        raise web.HTTPBadRequest(text=json.dumps({"ok": False, "error": "Ожидается JSON body"})) from exc
+
+    if not isinstance(data, dict):
+        raise web.HTTPBadRequest(text=json.dumps({"ok": False, "error": "JSON body должен быть объектом"}))
+    return data
+
+
 def validate_webapp_init_data(
     init_data: str,
     *,
@@ -1369,6 +1907,204 @@ def validate_webapp_init_data(
     user_raw = fields.get("user")
     user = json.loads(user_raw) if user_raw else None
     return {"fields": fields, "user": user, "dev_bypass": False}
+
+
+def verify_payment_webhook_secret(request: web.Request, request_data: dict[str, Any]) -> None:
+    if not PAYMENT_WEBHOOK_SECRET:
+        raise web.HTTPServiceUnavailable(
+            text=json.dumps({"ok": False, "error": "PAYMENT_WEBHOOK_SECRET is not configured"})
+        )
+
+    candidates = [
+        request.headers.get("X-Spacejam-Webhook-Secret", "").strip(),
+        request.headers.get("Authorization", "").removeprefix("Bearer ").strip(),
+        request.query.get("secret", "").strip(),
+        str(request_data.get("secret", "")).strip(),
+    ]
+
+    if any(candidate and hmac.compare_digest(candidate, PAYMENT_WEBHOOK_SECRET) for candidate in candidates):
+        return
+
+    raise web.HTTPUnauthorized(text=json.dumps({"ok": False, "error": "Webhook secret is invalid"}))
+
+
+def nested_payment_candidates(data: dict[str, Any]) -> list[dict[str, Any]]:
+    candidates = [data]
+    for key in ("result", "invoice", "payment", "data", "update"):
+        nested = data.get(key)
+        if isinstance(nested, dict):
+            candidates.append(nested)
+    return candidates
+
+
+def extract_webhook_payment_value(data: dict[str, Any], *keys: str) -> Any:
+    for candidate in nested_payment_candidates(data):
+        for key in keys:
+            if key in candidate and candidate.get(key) not in (None, ""):
+                return candidate.get(key)
+    return None
+
+
+def parse_paid_timestamp(value: Any) -> Optional[int]:
+    if value in (None, ""):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def build_display_amount_from_webhook(
+    *,
+    amount_value: Any,
+    amount_minor_value: Any,
+    currency: str,
+) -> tuple[int, str]:
+    if amount_minor_value not in (None, ""):
+        try:
+            minor_amount = int(amount_minor_value)
+        except (TypeError, ValueError):
+            minor_amount = 0
+        return minor_amount, format_payment_amount(minor_amount, currency)
+
+    if isinstance(amount_value, int):
+        return amount_value, format_payment_amount(amount_value, currency)
+
+    amount_text = str(amount_value).strip()
+    if not amount_text:
+        return 0, format_payment_amount(0, currency)
+    if amount_text.isdigit():
+        minor_amount = int(amount_text)
+        return minor_amount, format_payment_amount(minor_amount, currency)
+    return 0, f"{amount_text} {currency}".strip()
+
+
+def build_external_payment_defaults(method: str) -> tuple[str, str]:
+    if method == "card":
+        return CARD_CURRENCY, CARD_PAYLOAD
+    return CRYPTO_INVOICE_FIAT, PAYMENT_PAYLOAD
+
+
+async def notify_external_payment_success(
+    bot: Bot,
+    *,
+    user_id: int,
+    method: str,
+    display_amount: str,
+) -> None:
+    method_label = "картой" if method == "card" else "криптой"
+    try:
+        await bot.send_message(
+            chat_id=user_id,
+            text=(
+                "<b>Оплата подтверждена</b>\n\n"
+                f"Метод: {method_label}\n"
+                f"Сумма: {display_amount}\n\n"
+                "Доступ к курсу уже открыт. Можно сразу переходить к занятиям."
+            ),
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="Открыть курс", callback_data="main:course")],
+                    [InlineKeyboardButton(text="Посмотреть прогресс", callback_data="main:progress")],
+                ]
+            ),
+        )
+    except Exception:
+        logging.exception("Failed to notify user %s about %s payment", user_id, method)
+
+
+async def process_external_payment_webhook(request: web.Request, method: str) -> web.Response:
+    request_data = await read_json_request(request)
+    verify_payment_webhook_secret(request, request_data)
+
+    status_raw = extract_webhook_payment_value(
+        request_data,
+        "status",
+        "invoice_status",
+        "payment_status",
+    )
+    status = str(status_raw or "").strip().casefold()
+    if not status and bool(extract_webhook_payment_value(request_data, "paid")):
+        status = "paid"
+
+    accepted_statuses = {"paid", "confirmed", "completed", "success", "succeeded"}
+    if status not in accepted_statuses:
+        return web.json_response({"ok": True, "processed": False, "status": status or "ignored"})
+
+    user_id_raw = extract_webhook_payment_value(
+        request_data,
+        "user_id",
+        "telegram_user_id",
+        "tg_user_id",
+    )
+    payload = str(
+        extract_webhook_payment_value(
+            request_data,
+            "payload",
+            "invoice_payload",
+            "merchant_payload",
+            "payment_payload",
+        )
+        or ""
+    ).strip()
+
+    try:
+        user_id = int(user_id_raw) if user_id_raw not in (None, "") else None
+    except (TypeError, ValueError):
+        user_id = None
+    if user_id is None and payload:
+        user_id = extract_user_id_from_payment_payload(payload)
+    if user_id is None:
+        raise web.HTTPBadRequest(text=json.dumps({"ok": False, "error": "Webhook user_id is missing"}))
+
+    currency_default, payload_default = build_external_payment_defaults(method)
+    payload = payload or build_user_payment_payload(payload_default, user_id)
+    currency = str(
+        extract_webhook_payment_value(request_data, "currency", "asset", "fiat")
+        or currency_default
+    ).strip().upper()
+    amount, display_amount = build_display_amount_from_webhook(
+        amount_value=extract_webhook_payment_value(request_data, "amount", "price_amount", "fiat_amount"),
+        amount_minor_value=extract_webhook_payment_value(request_data, "amount_minor", "total_amount"),
+        currency=currency,
+    )
+    external_payment_id = str(
+        extract_webhook_payment_value(
+            request_data,
+            "payment_id",
+            "invoice_id",
+            "transaction_id",
+            "charge_id",
+            "id",
+        )
+        or payload
+    ).strip()
+    provider_charge_id = str(
+        extract_webhook_payment_value(request_data, "provider_payment_id", "provider_charge_id") or ""
+    ).strip()
+    paid_at = parse_paid_timestamp(
+        extract_webhook_payment_value(request_data, "paid_at", "created_at", "timestamp")
+    )
+
+    inserted = grant_course_access(
+        user_id,
+        amount=amount,
+        currency=currency,
+        telegram_charge_id="",
+        provider_charge_id=provider_charge_id,
+        payload=payload,
+        payment_method=method,
+        payment_source=f"{method}_webhook",
+        external_payment_id=external_payment_id,
+        display_amount=display_amount,
+        paid_at=paid_at,
+    )
+
+    if inserted:
+        bot: Bot = request.app["bot"]
+        await notify_external_payment_success(bot, user_id=user_id, method=method, display_amount=display_amount)
+
+    return web.json_response({"ok": True, "processed": inserted, "user_id": user_id})
 
 
 async def create_crypto_invoice_link(user_id: Optional[int] = None) -> str:
@@ -1632,10 +2368,11 @@ async def miniapp_stars_link_handler(request: web.Request) -> web.Response:
     if not payment_ready():
         raise web.HTTPBadRequest(text=json.dumps({"ok": False, "error": "Stars-оплата ещё не настроена"}))
 
-    request_data = await request.json()
+    request_data = await read_json_request(request)
     init_data = request_data.get("initData", "")
     validated = validate_webapp_init_data(init_data, allow_dev_bypass=True)
     user = validated.get("user") or {}
+    sync_webapp_user(user)
     payload = build_user_payment_payload(PAYMENT_PAYLOAD, user.get("id"))
     bot: Bot = request.app["bot"]
     invoice_url = await bot.create_invoice_link(**build_payment_kwargs(payload=payload))
@@ -1643,19 +2380,34 @@ async def miniapp_stars_link_handler(request: web.Request) -> web.Response:
 
 
 async def miniapp_card_link_handler(request: web.Request) -> web.Response:
+    request_data = await read_json_request(request)
+    init_data = request_data.get("initData", "")
+    validated = validate_webapp_init_data(init_data, allow_dev_bypass=True)
+    user = validated.get("user") or {}
+    sync_webapp_user(user)
+    payload = build_user_payment_payload(CARD_PAYLOAD, user.get("id"))
+
     if CARD_PAYMENT_URL:
-        return web.json_response({"ok": True, "url": CARD_PAYMENT_URL, "external": True, "dev_bypass": False})
+        checkout_url = build_external_checkout_url(
+            CARD_PAYMENT_URL,
+            method="card",
+            payload=payload,
+            user_id=user.get("id"),
+        )
+        return web.json_response(
+            {
+                "ok": True,
+                "url": checkout_url,
+                "external": True,
+                "dev_bypass": validated.get("dev_bypass", False),
+            }
+        )
 
     if not CARD_PROVIDER_TOKEN:
         raise web.HTTPBadRequest(
             text=json.dumps({"ok": False, "error": "Оплата картой ещё не настроена: нужен CARD_PAYMENT_URL или CARD_PROVIDER_TOKEN"})
         )
 
-    request_data = await request.json()
-    init_data = request_data.get("initData", "")
-    validated = validate_webapp_init_data(init_data, allow_dev_bypass=True)
-    user = validated.get("user") or {}
-    payload = build_user_payment_payload(CARD_PAYLOAD, user.get("id"))
     bot: Bot = request.app["bot"]
     invoice_url = await bot.create_invoice_link(**build_card_payment_kwargs(payload=payload))
     return web.json_response(
@@ -1667,11 +2419,22 @@ async def miniapp_crypto_link_handler(request: web.Request) -> web.Response:
     if not crypto_payment_ready():
         raise web.HTTPBadRequest(text=json.dumps({"ok": False, "error": "Крипто-оплата ещё не настроена"}))
 
-    request_data = await request.json()
+    request_data = await read_json_request(request)
     init_data = request_data.get("initData", "")
     validated = validate_webapp_init_data(init_data, allow_dev_bypass=True)
     user = validated.get("user") or {}
-    invoice_url = await create_crypto_invoice_link(user.get("id"))
+    sync_webapp_user(user)
+
+    if CRYPTO_PAYMENT_URL:
+        payload = build_user_payment_payload(PAYMENT_PAYLOAD, user.get("id"))
+        invoice_url = build_external_checkout_url(
+            CRYPTO_PAYMENT_URL,
+            method="crypto",
+            payload=payload,
+            user_id=user.get("id"),
+        )
+    else:
+        invoice_url = await create_crypto_invoice_link(user.get("id"))
     return web.json_response({"ok": True, "url": invoice_url, "dev_bypass": validated.get("dev_bypass", False)})
 
 
@@ -1679,7 +2442,7 @@ async def miniapp_promo_activate_handler(request: web.Request) -> web.Response:
     if not PROMO_CODE:
         raise web.HTTPBadRequest(text=json.dumps({"ok": False, "error": "Промокод сейчас недоступен"}))
 
-    request_data = await request.json()
+    request_data = await read_json_request(request)
     init_data = request_data.get("initData", "")
     promo_code = str(request_data.get("promoCode", "")).strip()
     if not promo_code:
@@ -1720,6 +2483,14 @@ async def miniapp_promo_activate_handler(request: web.Request) -> web.Response:
     )
 
 
+async def card_payment_webhook_handler(request: web.Request) -> web.Response:
+    return await process_external_payment_webhook(request, "card")
+
+
+async def crypto_payment_webhook_handler(request: web.Request) -> web.Response:
+    return await process_external_payment_webhook(request, "crypto")
+
+
 def build_web_application(bot: Bot) -> web.Application:
     app = web.Application()
     app["bot"] = bot
@@ -1744,6 +2515,8 @@ def build_web_application(bot: Bot) -> web.Application:
     app.router.add_post("/miniapp/api/payment/card-link", miniapp_card_link_handler)
     app.router.add_post("/miniapp/api/payment/crypto-link", miniapp_crypto_link_handler)
     app.router.add_post("/miniapp/api/payment/promo-activate", miniapp_promo_activate_handler)
+    app.router.add_post("/webhooks/payments/card", card_payment_webhook_handler)
+    app.router.add_post("/webhooks/payments/crypto", crypto_payment_webhook_handler)
     return app
 
 

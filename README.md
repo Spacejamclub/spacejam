@@ -46,6 +46,18 @@ ADMIN_IDS=123456789,987654321
 - `/grant 123456789` или `/grant @username`
 - `/revoke 123456789` или `/revoke @username`
 
+## Хранение данных
+
+Состояние пользователей теперь хранится в SQLite:
+
+- `data/course_state.sqlite3`
+
+Если в проекте уже был старый JSON-файл:
+
+- `data/course_state.json`
+
+бот автоматически мигрирует данные из него в SQLite при первом запуске и продолжит работать уже через базу.
+
 ## Контент курса
 
 Структура уроков вынесена в:
@@ -113,6 +125,7 @@ CRYPTO_PAY_API_BASE=https://pay.crypt.bot/api
 CRYPTO_INVOICE_FIAT=USD
 CRYPTO_INVOICE_AMOUNT=24.99
 CRYPTO_ACCEPTED_ASSETS=USDT,TON,BTC
+PAYMENT_WEBHOOK_SECRET=change-me
 ```
 
 Примечания:
@@ -131,6 +144,25 @@ CRYPTO_ACCEPTED_ASSETS=USDT,TON,BTC
 - `PAYMENT_PROVIDER_TOKEN` выдается через `@BotFather` после подключения платежного провайдера.
 - для цифровых товаров внутри Telegram основной способ оплаты должен быть `XTR`. Карта и крипта обычно используются как внешние сценарии оплаты.
 - промокод активируется через карточку `PROMO` внутри Mini App.
+- для внешней карты и крипты бот теперь умеет принимать защищенные webhook-подтверждения оплаты.
+- webhook секьюрится через `PAYMENT_WEBHOOK_SECRET`.
+- доступные endpoints:
+  - `POST /webhooks/payments/card`
+  - `POST /webhooks/payments/crypto`
+- Mini App при открытии внешнего checkout автоматически добавляет в ссылку `tg_user_id`, `payment_payload` и `spacejam_webhook_url`, чтобы внешний checkout мог связать платеж с Telegram-пользователем и отправить подтверждение обратно в бот.
+- минимальный JSON для webhook можно отправлять в таком виде:
+
+```json
+{
+  "status": "paid",
+  "user_id": 123456789,
+  "payment_id": "card-ord-1001",
+  "amount_minor": 9900,
+  "currency": "RUB",
+  "payload": "spacejam-card:123456789:1712345678",
+  "secret": "ваш PAYMENT_WEBHOOK_SECRET"
+}
+```
 
 ## Cloudflare Tunnel
 
