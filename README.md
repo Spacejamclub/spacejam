@@ -186,6 +186,7 @@ PAYMENT_WEBHOOK_SECRET=change-me
 Схема запуска:
 
 - на Render поднимается и бот, и Mini App как `RUN_BOT=1` и `RUN_WEB=1`,
+- база SQLite с оплатами и доступами должна лежать на persistent disk, иначе после деплоя Render может потерять доступы пользователей,
 - локально для безопасной проверки Mini App лучше использовать `RUN_BOT=0` и `RUN_WEB=1`,
 - polling бота должен работать только в одном месте, иначе Telegram вернёт конфликт `getUpdates`.
 
@@ -198,6 +199,19 @@ PAYMENT_WEBHOOK_SECRET=change-me
 ```bash
 Build Command: pip install -r requirements.txt
 Start Command: python bot.py
+```
+
+Если сервис создается вручную, добавьте persistent disk:
+
+```bash
+Mount Path: /var/data/spacejam
+Size: 1 GB
+```
+
+И укажите переменную окружения:
+
+```bash
+SPACEJAM_DATA_DIR=/var/data/spacejam
 ```
 
 4. В переменных окружения Render указать как минимум:
@@ -223,6 +237,12 @@ CRYPTO_PAY_API_TOKEN=
 7. Затем в Render добавить custom domain `pay.spacejam.by`.
 8. В DNS домена создать запись, которую подскажет Render, и нажать Verify.
 9. После этого обновить `MINI_APP_URL` на `https://pay.spacejam.by/miniapp`.
+
+Важно:
+
+- если раньше бот уже работал на Render без persistent disk, часть старых доступов могла потеряться при деплоях или перезапусках;
+- после подключения persistent disk новые оплаты и доступы будут сохраняться между деплоями;
+- удаление чата пользователем не должно сбрасывать доступ, если база с оплатами сохранена.
 
 Если Render уже держит боевого бота, локально запускай проект так, чтобы не было второго polling-процесса:
 

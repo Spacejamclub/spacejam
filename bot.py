@@ -226,6 +226,12 @@ WELCOME_TEXT = (
     "Выберите нужный раздел в меню ниже."
 )
 
+RETURNING_STUDENT_TEXT = (
+    "<b>Доступ к курсу уже открыт</b>\n\n"
+    "Если вы уже покупали курс, удаление чата не сбрасывает доступ.\n"
+    "Можно сразу вернуться к обучению с того места, где остановились."
+)
+
 DEFAULT_TRACKS = [
     ("basics", "Основы", "База, стойка, баланс и контроль доски."),
     ("carving", "Карвинг", "Контроль дуги, закантовка и чистые повороты."),
@@ -1559,6 +1565,28 @@ def build_progress_keyboard(user_id: int) -> Optional[InlineKeyboardMarkup]:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
+def build_returning_student_keyboard(user_id: int) -> InlineKeyboardMarkup:
+    continue_code = get_continue_lesson_code(user_id)
+    buttons: list[list[InlineKeyboardButton]] = []
+
+    if continue_code:
+        parsed = parse_lesson_code(continue_code)
+        if parsed:
+            track_key, lesson_number = parsed
+            buttons.append(
+                [
+                    InlineKeyboardButton(
+                        text="Продолжить обучение",
+                        callback_data=f"lesson:{track_key}:{lesson_number}",
+                    )
+                ]
+            )
+
+    buttons.append([InlineKeyboardButton(text="Открыть курс", callback_data="course:menu")])
+    buttons.append([InlineKeyboardButton(text="Мой прогресс", callback_data="main:progress")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
 def build_lesson_navigation_row(track_key: str, lesson_number: int) -> list[InlineKeyboardButton]:
     previous_code, next_code = get_adjacent_lesson_codes(track_key, lesson_number)
     row: list[InlineKeyboardButton] = []
@@ -2669,6 +2697,14 @@ async def send_welcome(message: Message) -> None:
         await safe_delete_message(message.bot, message.chat.id, previous_host_message_id)
 
     await create_keyboard_host(message)
+
+    user_id = message.from_user.id if message.from_user else message.chat.id
+    if user_has_course_access(user_id):
+        await replace_panel(
+            message,
+            text=RETURNING_STUDENT_TEXT,
+            reply_markup=build_returning_student_keyboard(user_id),
+        )
 
 
 async def show_course_panel(message: Message) -> None:
