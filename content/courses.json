@@ -100,10 +100,7 @@
           "video_file_id": "",
           "video_url": "",
           "video_caption": "SPACEJAM · Основы · Урок 12 · Проверочный проезд"
-        },
-        { "number": 13, "title": "Урок 13", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
-        { "number": 14, "title": "Урок 14", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" },
-        { "number": 15, "title": "Урок 15", "text": "Добавьте описание урока и ключевые тезисы.", "video_file_id": "", "video_url": "", "video_caption": "" }
+        }
       ]
     },
     {
